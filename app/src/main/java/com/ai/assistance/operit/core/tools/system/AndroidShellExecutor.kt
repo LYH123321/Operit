@@ -103,6 +103,22 @@ class AndroidShellExecutor {
 
             val reason = buildStrictUnavailableReason(actualLevel, executorAvailable, permStatus)
 
+            // MOD: fallback chain - degrade to any available executor instead of hard failing
+            val fallbackOrder = listOf(AndroidPermissionLevel.ROOT, AndroidPermissionLevel.DEBUGGER, AndroidPermissionLevel.ACCESSIBILITY, AndroidPermissionLevel.ADMIN, AndroidPermissionLevel.STANDARD)
+            for (level in fallbackOrder) {
+                if (level == actualLevel) continue
+                try {
+                    val fe = ShellExecutorFactory.getExecutor(ctx, level)
+                    if (fe.isAvailable() && fe.hasPermission().granted) {
+                        val fr = fe.executeCommand(command, identity)
+                        AppLogger.d(TAG, "Fallback executor used: ${'$'}{getPermissionLevelLabel(level)}")
+                        return CommandResult(fr.success, fr.stdout, fr.stderr, fr.exitCode)
+                    }
+                } catch (e: Exception) {
+                    AppLogger.d(TAG, "Fallback ${'$'}{getPermissionLevelLabel(level)} failed: ${'$'}{e.message}")
+                }
+            }
+
             AppLogger.d(TAG, "Strict permission mode enabled. $reason")
             return CommandResult(false, "", reason, -1)
         }
