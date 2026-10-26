@@ -1500,7 +1500,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             descriptionGenerator = { _ -> "Show the Live2D anime companion floating window (needs overlay permission)" },
             executor = { tool ->
                 try {
-                    val ctx = com.ai.assistance.operit.MyApplication.instance
+                    val ctx = com.ai.assistance.operit.core.application.OperitApplication.instance
                     ctx.startService(android.content.Intent(ctx, com.ai.assistance.operit.services.Live2DService::class.java))
                     com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = true,
                         result = com.ai.assistance.operit.core.tools.StringResultData("Live2D companion shown"))
@@ -1515,7 +1515,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             descriptionGenerator = { _ -> "Hide the Live2D anime companion floating window" },
             executor = { tool ->
                 try {
-                    val ctx = com.ai.assistance.operit.MyApplication.instance
+                    val ctx = com.ai.assistance.operit.core.application.OperitApplication.instance
                     ctx.startService(android.content.Intent(ctx, com.ai.assistance.operit.services.Live2DService::class.java).setAction("hide"))
                     com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = true,
                         result = com.ai.assistance.operit.core.tools.StringResultData("Live2D companion hidden"))
