@@ -1617,6 +1617,39 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 }
             }
     )
+    handler.registerTool(
+            name = "dev_fetch",
+            descriptionGenerator = { tool ->
+                val u = tool.parameters.find { it.name == "url" }?.value ?: ""
+                val sub = tool.parameters.find { it.name == "subdir" }?.value ?: "downloads"
+                "Download a dev asset (skill pack / plugin / model file / any file) from " + u + " into /sdcard/Download/Operit/" + sub + "/"
+            },
+            executor = { tool ->
+                try {
+                    val u = tool.parameters.find { it.name == "url" }?.value ?: ""
+                    val sub = tool.parameters.find { it.name == "subdir" }?.value ?: "downloads"
+                    if (u.isBlank()) throw IllegalArgumentException("url required")
+                    val dir = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS), "Operit/" + sub)
+                    dir.mkdirs()
+                    var name = u.substringAfterLast('/').substringBefore('?')
+                    if (name.isBlank() || !name.contains('.')) name = "asset_" + System.currentTimeMillis()
+                    val out = java.io.File(dir, name)
+                    val client = okhttp3.OkHttpClient.Builder().followRedirects(true).build()
+                    val req = okhttp3.Request.Builder().url(u).header("User-Agent", "Mozilla/5.0").build()
+                    client.newCall(req).execute().use { resp ->
+                        if (!resp.isSuccessful) throw RuntimeException("HTTP " + resp.code)
+                        resp.body?.byteStream()?.use { input ->
+                            out.outputStream().use { input.copyTo(it) }
+                        }
+                    }
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = true,
+                        result = com.ai.assistance.operit.core.tools.StringResultData("saved: " + out.absolutePath + " (" + out.length() / 1024 + " KB)"))
+                } catch (e: Exception) {
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = false,
+                        result = com.ai.assistance.operit.core.tools.StringResultData(""), error = e.message)
+                }
+            }
+    )
     // Tasker事件触发工具
     handler.registerTool(
             name = "trigger_tasker_event",
