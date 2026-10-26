@@ -1495,6 +1495,49 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 com.ai.assistance.operit.core.tools.defaultTool.standard.PhoneInfoToolExecutor(context).invoke(tool)
             }
     )
+    handler.registerTool(
+            name = "show_live2d",
+            descriptionGenerator = { _ -> "Show the Live2D anime companion floating window (needs overlay permission)" },
+            executor = { tool ->
+                try {
+                    val ctx = com.ai.assistance.operit.MyApplication.instance
+                    ctx.startService(android.content.Intent(ctx, com.ai.assistance.operit.services.Live2DService::class.java))
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = true,
+                        result = com.ai.assistance.operit.core.tools.StringResultData("Live2D companion shown"))
+                } catch (e: Exception) {
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = false,
+                        result = com.ai.assistance.operit.core.tools.StringResultData(""), error = e.message)
+                }
+            }
+    )
+    handler.registerTool(
+            name = "hide_live2d",
+            descriptionGenerator = { _ -> "Hide the Live2D anime companion floating window" },
+            executor = { tool ->
+                try {
+                    val ctx = com.ai.assistance.operit.MyApplication.instance
+                    ctx.startService(android.content.Intent(ctx, com.ai.assistance.operit.services.Live2DService::class.java).setAction("hide"))
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = true,
+                        result = com.ai.assistance.operit.core.tools.StringResultData("Live2D companion hidden"))
+                } catch (e: Exception) {
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = false,
+                        result = com.ai.assistance.operit.core.tools.StringResultData(""), error = e.message)
+                }
+            }
+    )
+    handler.registerTool(
+            name = "live2d_say",
+            descriptionGenerator = { tool ->
+                val t = tool.parameters.find { it.name == "text" }?.value ?: ""
+                "Make the Live2D companion say: $t"
+            },
+            executor = { tool ->
+                val t = tool.parameters.find { it.name == "text" }?.value ?: ""
+                com.ai.assistance.operit.services.Live2DService.say(t)
+                com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = true,
+                    result = com.ai.assistance.operit.core.tools.StringResultData("said: $t"))
+            }
+    )
     // Tasker事件触发工具
     handler.registerTool(
             name = "trigger_tasker_event",
