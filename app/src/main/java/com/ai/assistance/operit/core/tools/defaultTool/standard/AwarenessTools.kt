@@ -36,7 +36,7 @@ open class AwarenessTools(private val context: Context) {
                             com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
                                 .executeShellCommand("dumpsys clipboard | grep -m1 text=")
                         }
-                        if (r.success) text = r.output.trim()
+                        if (r.success) text = r.stdout.trim()
                     } catch (e: Exception) { AppLogger.w(TAG, "clipboard shell fallback failed: ${e.message}") }
                 }
                 if (text.isBlank()) {
