@@ -46,12 +46,28 @@ class Live2DService : Service() {
             val l = moodLines[m] ?: moodLines["normal"]!!
             return l[kotlin.random.Random.nextInt(l.size)]
         }
+        @Volatile var ttsEngine: android.speech.tts.TextToSpeech? = null
+        fun ensureTts(ctx: android.content.Context) {
+            if (ttsEngine != null) return
+            ttsEngine = android.speech.tts.TextToSpeech(ctx.applicationContext) { status ->
+                if (status == android.speech.tts.TextToSpeech.SUCCESS) {
+                    ttsEngine?.language = java.util.Locale.SIMPLIFIED_CHINESE
+                }
+            }
+        }
+        fun speak(text: String) {
+            try {
+                ttsEngine?.setSpeechRate(1.05f)
+                ttsEngine?.speak(text, android.speech.tts.TextToSpeech.QUEUE_ADD, null, "pet")
+            } catch (_: Exception) {}
+        }
         fun say(text: String) {
             lastSayTime = System.currentTimeMillis()
             if (petMood == "bored" || petMood == "sleepy") petMood = "happy"
             webView?.post {
                 webView?.evaluateJavascript("say(" + android.text.TextUtils.htmlEncode(text).let { "'" + it.replace("'", "\\'") + "'" } + ");", null)
             }
+            speak(text)
         }
     }
 
@@ -73,6 +89,7 @@ class Live2DService : Service() {
         }
         if (isShowing) return START_NOT_STICKY
         if (!android.provider.Settings.canDrawOverlays(this)) return START_NOT_STICKY
+        ensureTts(this)
         // 心情循环：每 3 分钟检查，无聊/困了主动搭话（AG 主动关怀雏形）
         moodHandler?.removeCallbacks(moodRunnable ?: Runnable {})
         moodHandler = android.os.Handler(android.os.Looper.getMainLooper())
