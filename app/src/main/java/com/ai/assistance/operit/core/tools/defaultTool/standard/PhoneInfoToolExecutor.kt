@@ -23,7 +23,7 @@ class PhoneInfoToolExecutor(private val context: Context) : ToolExecutor {
             val sb = StringBuilder()
 
             sb.appendLine("== 关于本机 ==")
-            prop("ro.product.marketname", "机型名称")?.let { sb.appendLine("机型: $it") }
+            prop("ro.product.marketname")?.let { sb.appendLine("机型: $it") }
             sb.appendLine("品牌: ${Build.BRAND}  厂商: ${Build.MANUFACTURER}")
             sb.appendLine("型号: ${Build.MODEL}  设备代号: ${Build.DEVICE}")
             sb.appendLine("Android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})")
@@ -61,7 +61,7 @@ class PhoneInfoToolExecutor(private val context: Context) : ToolExecutor {
                 val dm = context.resources.displayMetrics
                 sb.appendLine("分辨率: ${dm.widthPixels}x${dm.heightPixels}  密度: ${dm.densityDpi}dpi (${String.format("%.2f", dm.density)}x)")
                 @Suppress("DEPRECATION")
-                val refresh = context.display?.refreshRate ?: dm.refreshRate
+                val refresh = context.display?.refreshRate ?: 60f
                 sb.appendLine("刷新率: ${String.format("%.1f", refresh)}Hz")
                 val real = context.display
                 real?.let { sb.appendLine("物理尺寸: ${String.format("%.1f", it.width / dm.xdpi * 0.03937)} x ${String.format("%.1f", it.height / dm.ydpi * 0.03937)} 英寸") }
@@ -87,7 +87,7 @@ class PhoneInfoToolExecutor(private val context: Context) : ToolExecutor {
 
             sb.appendLine().appendLine("== 电池 ==")
             try {
-                val bi = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                val bi = context.registerReceiver(null, IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
                 if (bi != null) {
                     val level = bi.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
                     val scale = bi.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
