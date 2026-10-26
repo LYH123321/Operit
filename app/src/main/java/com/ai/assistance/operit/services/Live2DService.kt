@@ -85,7 +85,7 @@ class Live2DService : Service() {
                 moodHandler?.removeCallbacks(moodRunnable ?: Runnable {})
                 hide(); stopSelf(); return START_NOT_STICKY
             }
-            "say" -> { intent.getStringExtra("text")?.let { say(it) }; return START_NOT_STICKY }
+            "say" -> { intent?.getStringExtra("text")?.let { say(it) }; return START_NOT_STICKY }
         }
         if (isShowing) return START_NOT_STICKY
         if (!android.provider.Settings.canDrawOverlays(this)) return START_NOT_STICKY
