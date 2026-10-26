@@ -319,6 +319,10 @@
             android:name=".ui.features.chat.webview.MediaWebActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
+        <activity
+            android:name=".ui.features.chat.webview.SniffActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
         <service
             android:name=".services.FloatingChatService"
             android:enabled="true"
