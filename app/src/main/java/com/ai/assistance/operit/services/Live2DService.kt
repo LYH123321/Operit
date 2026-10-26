@@ -24,8 +24,31 @@ class Live2DService : Service() {
     companion object {
         @Volatile var webView: WebView? = null
         @Volatile var isShowing = false
-
+        // ===== 心情机 =====
+        @Volatile var petMood: String = "normal"   // happy / normal / bored / sleepy
+        @Volatile var lastSayTime: Long = 0L
+        val moodLines = mapOf(
+            "happy" to listOf("嘿嘿，今天真开心~", "和你在一起最好啦!", "元气满满!", "刚才聊得很开心呢", "嘿嘿，被夸了!"),
+            "normal" to listOf("嗯~在待机中", "有什么想看的剧吗?", "要不要打开影视中心呀?", "我在呢~", "无聊的话可以看看小说哦"),
+            "bored" to listOf("好无聊啊...理理我嘛", "你已经很久没和我说话了!", "我在这发呆好久了...", "要不要一起看个剧?"),
+            "sleepy" to listOf("zzZ...", "困了...晚安", "呼...睡着了...")
+        )
+        fun updateMood() {
+            val idle = (System.currentTimeMillis() - lastSayTime) / 60000L
+            petMood = when {
+                idle < 10 -> "happy"
+                idle < 40 -> "normal"
+                idle < 150 -> "bored"
+                else -> "sleepy"
+            }
+        }
+        fun randomLine(m: String): String {
+            val l = moodLines[m] ?: moodLines["normal"]!!
+            return l[kotlin.random.Random.nextInt(l.size)]
+        }
         fun say(text: String) {
+            lastSayTime = System.currentTimeMillis()
+            if (petMood == "bored" || petMood == "sleepy") petMood = "happy"
             webView?.post {
                 webView?.evaluateJavascript("say(" + android.text.TextUtils.htmlEncode(text).let { "'" + it.replace("'", "\\'") + "'" } + ");", null)
             }
@@ -33,6 +56,8 @@ class Live2DService : Service() {
     }
 
     private var windowManager: WindowManager? = null
+    private var moodHandler: android.os.Handler? = null
+    private var moodRunnable: Runnable? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -40,11 +65,30 @@ class Live2DService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action ?: "show"
         when (action) {
-            "hide" -> { hide(); stopSelf(); return START_NOT_STICKY }
+            "hide" -> {
+                moodHandler?.removeCallbacks(moodRunnable ?: Runnable {})
+                hide(); stopSelf(); return START_NOT_STICKY
+            }
             "say" -> { intent.getStringExtra("text")?.let { say(it) }; return START_NOT_STICKY }
         }
         if (isShowing) return START_NOT_STICKY
         if (!android.provider.Settings.canDrawOverlays(this)) return START_NOT_STICKY
+        // 心情循环：每 3 分钟检查，无聊/困了主动搭话（AG 主动关怀雏形）
+        moodHandler?.removeCallbacks(moodRunnable ?: Runnable {})
+        moodHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        val runnable = object : Runnable {
+            override fun run() {
+                try {
+                    updateMood()
+                    if (petMood == "bored" || petMood == "sleepy") {
+                        say(randomLine(petMood))
+                    }
+                } catch (_: Exception) {}
+                moodHandler?.postDelayed(this, 3 * 60 * 1000L)
+            }
+        }
+        moodRunnable = runnable
+        moodHandler?.postDelayed(runnable, 3 * 60 * 1000L)
 
         // 解压 web.zip 到 filesDir/live2d（首次）
         val dir = File(filesDir, "live2d")
