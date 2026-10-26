@@ -652,6 +652,11 @@ object SystemToolPromptsInternal {
                             name = "read_notifications",
                             description = "Read a snapshot of active system notifications (needs notification access permission). Weather alerts, messages, deliveries.",
                             parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "phone_info",
+                            description = "Get comprehensive phone information: model, Android version, SoC/CPU cores and live frequencies, screen resolution/refresh rate, RAM/swap, storage, battery health/voltage/temperature, full sensor list, network/WiFi details, uptime. Like an About-Phone page.",
+                            parametersStructured = listOf()
                         )
                     )
             ),
