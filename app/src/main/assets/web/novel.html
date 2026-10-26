@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>小说中心</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:system-ui,sans-serif;padding-bottom:60px}
+.h{padding:14px 16px;font-size:20px;font-weight:700;background:#161b22;position:sticky;top:0;z-index:5;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center}
+.h a{font-size:12px;color:#8b949e;text-decoration:none}
+.search{display:flex;gap:8px;padding:12px 16px;background:#161b22;position:sticky;top:52px;z-index:5;border-bottom:1px solid #21262d}
+.search input{flex:1;padding:10px 14px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#e6edf3;font-size:15px;outline:none}
+.search button{padding:0 20px;border-radius:8px;border:none;background:#238636;color:#fff;font-size:15px;font-weight:600}
+.res{padding:8px 16px}
+.res .b{padding:10px 0;border-bottom:1px solid #21262d;cursor:pointer}
+.res .bn{font-size:15px;font-weight:600}
+.res .ba{font-size:12px;color:#8b949e;margin-top:2px}
+#toc{position:fixed;inset:0;background:#0d1117;z-index:40;display:none;flex-direction:column}
+#toc .th{padding:12px 16px;font-size:16px;font-weight:700;background:#161b22;border-bottom:1px solid #30363d;display:flex;justify-content:space-between}
+#tocList{flex:1;overflow:auto;padding:6px 16px}
+#tocList .c{padding:9px 0;border-bottom:1px solid #161b22;cursor:pointer;font-size:14px;color:#c9d1d9}
+#read{position:fixed;inset:0;background:#e8e3d5;color:#333;z-index:45;display:none;flex-direction:column}
+#read .rh{padding:8px 14px;font-size:13px;color:#8a7f6a;display:flex;justify-content:space-between;background:#ddd6c4}
+#content{flex:1;overflow:auto;padding:16px 18px;font-size:17px;line-height:1.9;letter-spacing:.5px}
+#content p{margin:0 0 14px;text-indent:2em}
+.nav{display:flex;gap:8px;padding:10px 14px;background:#ddd6c4}
+.nav button{flex:1;padding:10px;border-radius:8px;border:1px solid #b8ad93;background:#e8e3d5;font-size:15px}
+.loading,.empty{padding:40px;text-align:center;color:#8b949e}
+</style>
+</head>
+<body>
+<div class="h">📚 小说中心 <a href="/video.html">🎬 影视 →</a></div>
+<div class="search">
+  <input id="kw" placeholder="搜索书名 / 作者…" value="斗破苍穹">
+  <button onclick="doSearch()">搜索</button>
+</div>
+<div id="status" class="empty">加载书源…</div>
+<div id="res" class="res"></div>
+
+<div id="toc">
+  <div class="th"><span id="tocTitle"></span><button onclick="toc.style.display='none'" style="border:none;background:none;color:#8b949e;font-size:16px">✕</button></div>
+  <div id="tocList"></div>
+</div>
+
+<div id="read">
+  <div class="rh"><span id="chTitle"></span><span id="chIdx"></span></div>
+  <div id="content"></div>
+  <div class="nav"><button onclick="chJump(-1)">上一章</button><button onclick="read.style.display='none'">目录</button><button onclick="chJump(1)">下一章</button></div>
+</div>
+<script src="/engine.js"></script>
+<script>
+let BOOKSOURCES=[], cur=null, curToc=[], curCh=-1;
+
+function px(u){ return '/api/proxy?url=' + encodeURIComponent(u); }
+const UA = {'User-Agent':'Mozilla/5.0 (Linux; Android 13) Chrome/120 Mobile Safari/537.36'};
+
+async function fetchText(url){
+  const r = await fetch(px(url), {headers:Object.assign({},UA,{'Accept':'text/html,*/*'})});
+  return { text: await r.text(), finalUrl: url };
+}
+function doc(html){ return new DOMParser().parseFromString(html, 'text/html'); }
+
+async function init(){
+  try{
+    const r = await fetch('/booksource.json');
+    BOOKSOURCES = await r.json();
+    document.getElementById('status').textContent = '已加载 '+BOOKSOURCES.length+' 个书源，输入书名搜索';
+  }catch(e){ document.getElementById('status').textContent='书源加载失败'; }
+}
+
+async function doSearch(){
+  const kw = document.getElementById('kw').value.trim(); if(!kw) return;
+  const st=document.getElementById('status'); st.className='loading'; st.textContent='搜索中…';
+  document.getElementById('res').innerHTML='';
+  const out=[];
+  const usable = BOOKSOURCES.filter(s=>s.searchUrl && !String(s.searchUrl).includes('<js'));
+  const jobs = usable.slice(0,10).map(async s=>{
+    try{
+      let surl = s.searchUrl.replace(/{{.*/,'').replace(/,\s*[^,]*$/,'');
+      const key = s.searchUrl.match(/\{(key|keyword)\}/) ? kw : encodeURIComponent(kw);
+      surl = surl.replace(/\{\$?\{?(key|keyword)\}?\}?/g, kw).replace(/searchKey|searchKeyW/g, kw);
+      if(surl.includes('=' + kw) === false && /\bwd=|searchkey=|key=|keyword=/i.test(surl) === false) {}
+      const {text, finalUrl} = await fetchText(surl);
+      const d = doc(text);
+      const rule = s.ruleSearch || {};
+      const list = evalList(rule.bookList||'', d.body);
+      for(const el of list.slice(0,8)){
+        try{
+          const name = evalRule(rule.name||'', el, finalUrl);
+          if(!name || !name.includes(kw.slice(0,2))) continue;
+          const bkUrl = evalRule(rule.bookUrl||'', el, finalUrl);
+          if(!bkUrl) continue;
+          out.push({name, author:evalRule(rule.author||'',el,finalUrl)||'', src:s, bkUrl});
+        }catch(e){}
+      }
+    }catch(e){}
+  });
+  await Promise.all(jobs);
+  st.style.display='none';
+  if(!out.length){ st.style.display='block'; st.className='empty'; st.textContent='无结果'; return; }
+  const r=document.getElementById('res');
+  out.forEach(b=>{
+    const el=document.createElement('div'); el.className='b';
+    el.innerHTML=`<div class="bn">${b.name}</div><div class="ba">${b.author} · ${b.src.bookSourceName}</div>`;
+    el.onclick=()=>openToc(b);
+    r.appendChild(el);
+  });
+}
+
+async function openToc(b){
+  cur=b;
+  const st=document.getElementById('tocList'); st.innerHTML='<div class="loading">加载目录…</div>';
+  document.getElementById('tocTitle').textContent=b.name;
+  document.getElementById('toc').style.display='flex';
+  try{
+    const {text, finalUrl} = await fetchText(b.bkUrl);
+    const d=doc(text);
+    const rule=b.src.ruleToc||{};
+    const list=evalList(rule.chapterList||rule.bookList||'', d.body);
+    curToc=[];
+    for(const el of list){
+      const name=evalRule(rule.chapterName||'',el,finalUrl);
+      const url=evalRule(rule.chapterUrl||'',el,finalUrl);
+      if(name&&url) curToc.push({name,url});
+    }
+    st.innerHTML='';
+    curToc.forEach((c,i)=>{
+      const el=document.createElement('div'); el.className='c'; el.textContent=c.name;
+      el.onclick=()=>openCh(i);
+      st.appendChild(el);
+    });
+  }catch(e){ st.innerHTML='<div class="loading">目录加载失败</div>'; }
+}
+
+async function openCh(i){
+  if(i<0||i>=curToc.length) return;
+  curCh=i;
+  document.getElementById('read').style.display='flex';
+  document.getElementById('content').innerHTML='<div class="loading">加载中…</div>';
+  document.getElementById('chTitle').textContent=curToc[i].name;
+  document.getElementById('chIdx').textContent=(i+1)+'/'+curToc.length;
+  try{
+    const {text, finalUrl}=await fetchText(curToc[i].url);
+    const d=doc(text);
+    const rule=cur.src.ruleContent||{};
+    let content=evalRule(rule.content||'',d.body,finalUrl);
+    if(!content) content=d.body.innerText;
+    content=content.replace(/&nbsp;/g,' ').split(/\n{2,}|\s{4,}/).map(p=>p.trim()).filter(Boolean).map(p=>'<p>'+p.replace(/</g,'&lt;')+'</p>').join('');
+    document.getElementById('content').innerHTML=content||'<p>正文解析失败（该源规则可能需要JS引擎）</p>';
+    document.getElementById('content').scrollTop=0;
+  }catch(e){ document.getElementById('content').innerHTML='<p>加载失败:'+e.message+'</p>'; }
+}
+function chJump(d){ openCh(curCh+d); }
+document.getElementById('kw').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+init();
+</script>
+</body>
+</html>
