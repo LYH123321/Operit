@@ -628,6 +628,30 @@ object SystemToolPromptsInternal {
                             name = "device_info",
                             description = "Get device information.",
                             parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "read_clipboard",
+                            description = "Read the current system clipboard text. On Android 10+ may be empty unless app has focus or Shizuku.",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "write_clipboard",
+                            description = "Write text to the system clipboard.",
+                            parametersStructured = listOf(
+                                ToolParameterSchema(name = "text", type = "string", description = "required, the text to put on clipboard", required = true)
+                            )
+                        ),
+                        ToolPrompt(
+                            name = "get_app_usage",
+                            description = "Query which apps were used recently and for how long (needs Usage access permission). Useful for understanding user activity.",
+                            parametersStructured = listOf(
+                                ToolParameterSchema(name = "hours", type = "integer", description = "optional, lookback hours, default 24", required = false, default = "24")
+                            )
+                        ),
+                        ToolPrompt(
+                            name = "read_notifications",
+                            description = "Read a snapshot of active system notifications (needs notification access permission). Weather alerts, messages, deliveries.",
+                            parametersStructured = listOf()
                         )
                     )
             ),
