@@ -1540,8 +1540,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
     )
     handler.registerTool(
             name = "open_media_center",
-            descriptionGenerator = { tool ->
-                val p = tool.parameters.find { it.name == "page" }?.value ?: "video"
+            descriptionGenerator = { _ -> "打开内置媒体中心：page=novel是免费小说中心(254书源换源阅读)，page=video是影视中心(聚合5个资源站免费看剧看电影)，page=gamehall是游戏中心。用户说[看小说][小说中心][看书][影视中心][看剧][看电影][游戏中心][玩游戏]时必须用本工具打开内置页面，绝不要搜索或启动其他阅读/视频App。" }?.value ?: "video"
                 "Open the media center page: $p (novel = free novel reader with 254 sources, video = free video center with m3u8 playback, gamehall = game center)"
             },
             executor = { tool ->
@@ -1562,7 +1561,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
     )
     handler.registerTool(
             name = "open_sniffer",
-            descriptionGenerator = { _ -> "Open the video URL sniffer browser (WebView that intercepts real m3u8/mp4 addresses when user plays video on any site)" },
+            descriptionGenerator = { _ -> "打开内置视频嗅探浏览器：输入视频网站网址(如v.qq.com)，自动嗅探抓取m3u8/mp4直链，点底部结果可复制。用户说[嗅探][抓视频直链][抓m3u8]时用本工具。" },
             executor = { tool ->
                 try {
                     val ctx = com.ai.assistance.operit.core.application.OperitApplication.instance
@@ -1579,7 +1578,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
     )
     handler.registerTool(
             name = "get_pet_status",
-            descriptionGenerator = { _ -> "Get the Live2D pet mood status (mood happy/normal/bored/sleepy, idle minutes since last interaction, whether visible). Use it to craft proactive companion messages." },
+            descriptionGenerator = { _ -> "获取Live2D桌宠当前心情(happy开心/normal普通/bored无聊/sleepy困)和闲置分钟数，用于主动关怀聊天。用户问[桌宠心情][它在干嘛]时用本工具。" },
             executor = { tool ->
                 try {
                     com.ai.assistance.operit.services.Live2DService.updateMood()
@@ -1596,8 +1595,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
     )
     handler.registerTool(
             name = "watch_with_me",
-            descriptionGenerator = { tool ->
-                val kw = tool.parameters.find { it.name == "keyword" }?.value ?: ""
+            descriptionGenerator = { _ -> "AI陪看：拉起内置影视中心并让桌宠一起看剧解说。参数keyword=剧名。用户说[陪我看][一起看]时用本工具，之后可周期调用capture_screenshot看屏幕并像朋友一样评论剧情。" }?.value ?: ""
                 "Open the video center to watch together: " + kw + ". Then use capture_screenshot periodically to see what user watches and comment like a companion."
             },
             executor = { tool ->
@@ -1619,8 +1617,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
     )
     handler.registerTool(
             name = "dev_fetch",
-            descriptionGenerator = { tool ->
-                val u = tool.parameters.find { it.name == "url" }?.value ?: ""
+            descriptionGenerator = { _ -> "开发技能：从任意URL下载文件(技能包/插件/模型/任意文件)到/sdcard/Download/Operit/{subdir}/。用户说[下载这个文件][帮我拉取xxx]时用本工具。" }?.value ?: ""
                 val sub = tool.parameters.find { it.name == "subdir" }?.value ?: "downloads"
                 "Download a dev asset (skill pack / plugin / model file / any file) from " + u + " into /sdcard/Download/Operit/" + sub + "/"
             },
