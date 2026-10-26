@@ -657,6 +657,23 @@ object SystemToolPromptsInternal {
                             name = "phone_info",
                             description = "Get comprehensive phone information: model, Android version, SoC/CPU cores and live frequencies, screen resolution/refresh rate, RAM/swap, storage, battery health/voltage/temperature, full sensor list, network/WiFi details, uptime. Like an About-Phone page.",
                             parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "show_live2d",
+                            description = "Show a cute Live2D anime girl companion in a floating window on screen. She blinks, moves, can be dragged. Needs overlay permission.",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "hide_live2d",
+                            description = "Hide the Live2D anime companion floating window.",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "live2d_say",
+                            description = "Make the Live2D anime companion display a speech bubble with the given text.",
+                            parametersStructured = listOf(
+                                ToolParameterSchema(name = "text", type = "string", description = "required, text she should say", required = true)
+                            )
                         )
                     )
             ),
