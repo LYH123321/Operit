@@ -1560,6 +1560,23 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 }
             }
     )
+    handler.registerTool(
+            name = "open_sniffer",
+            descriptionGenerator = { _ -> "Open the video URL sniffer browser (WebView that intercepts real m3u8/mp4 addresses when user plays video on any site)" },
+            executor = { tool ->
+                try {
+                    val ctx = com.ai.assistance.operit.core.application.OperitApplication.instance
+                    val intent = android.content.Intent(ctx, com.ai.assistance.operit.ui.features.chat.webview.SniffActivity::class.java)
+                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    ctx.startActivity(intent)
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = true,
+                        result = com.ai.assistance.operit.core.tools.StringResultData("sniffer browser opened"))
+                } catch (e: Exception) {
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = false,
+                        result = com.ai.assistance.operit.core.tools.StringResultData(""), error = e.message)
+                }
+            }
+    )
     // Tasker事件触发工具
     handler.registerTool(
             name = "trigger_tasker_event",
