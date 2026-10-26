@@ -60,7 +60,7 @@ class SniffActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             hint = "输入视频网址，如 v.qq.com"
             setText(intent.getStringExtra("url") ?: "https://v.qq.com")
-            singleLine = true
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
             textSize = 13f
         }
         val btnGo = Button(this).apply { text = "GO" }
