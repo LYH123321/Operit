@@ -1488,6 +1488,13 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 com.ai.assistance.operit.core.tools.defaultTool.standard.AwarenessTools.ReadNotificationsExecutor().invoke(tool)
             }
     )
+    handler.registerTool(
+            name = "phone_info",
+            descriptionGenerator = { _ -> "Get comprehensive phone info: hardware, SoC, CPU freq, screen, RAM, storage, battery, sensors, network, uptime" },
+            executor = { tool ->
+                com.ai.assistance.operit.core.tools.defaultTool.standard.PhoneInfoToolExecutor(context).invoke(tool)
+            }
+    )
     // Tasker事件触发工具
     handler.registerTool(
             name = "trigger_tasker_event",
