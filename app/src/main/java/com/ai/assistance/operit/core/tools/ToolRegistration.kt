@@ -1577,6 +1577,46 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 }
             }
     )
+    handler.registerTool(
+            name = "get_pet_status",
+            descriptionGenerator = { _ -> "Get the Live2D pet mood status (mood happy/normal/bored/sleepy, idle minutes since last interaction, whether visible). Use it to craft proactive companion messages." },
+            executor = { tool ->
+                try {
+                    com.ai.assistance.operit.services.Live2DService.updateMood()
+                    val mood = com.ai.assistance.operit.services.Live2DService.petMood
+                    val idleMin = (System.currentTimeMillis() - com.ai.assistance.operit.services.Live2DService.lastSayTime) / 60000L
+                    val showing = com.ai.assistance.operit.services.Live2DService.isShowing
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = true,
+                        result = com.ai.assistance.operit.core.tools.StringResultData("mood: " + mood + ", idle_minutes: " + idleMin + ", visible: " + showing))
+                } catch (e: Exception) {
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = false,
+                        result = com.ai.assistance.operit.core.tools.StringResultData(""), error = e.message)
+                }
+            }
+    )
+    handler.registerTool(
+            name = "watch_with_me",
+            descriptionGenerator = { tool ->
+                val kw = tool.parameters.find { it.name == "keyword" }?.value ?: ""
+                "Open the video center to watch together: " + kw + ". Then use capture_screenshot periodically to see what user watches and comment like a companion."
+            },
+            executor = { tool ->
+                try {
+                    val kw = tool.parameters.find { it.name == "keyword" }?.value ?: ""
+                    val ctx = com.ai.assistance.operit.core.application.OperitApplication.instance
+                    val intent = android.content.Intent(ctx, com.ai.assistance.operit.ui.features.chat.webview.MediaWebActivity::class.java)
+                    intent.putExtra("page", "video")
+                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    ctx.startActivity(intent)
+                    com.ai.assistance.operit.services.Live2DService.say("一起看" + kw + "吧！我也来！")
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = true,
+                        result = com.ai.assistance.operit.core.tools.StringResultData("video center opened for co-watching: " + kw + ". Tip: call capture_screenshot to see the screen and chat about it."))
+                } catch (e: Exception) {
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = false,
+                        result = com.ai.assistance.operit.core.tools.StringResultData(""), error = e.message)
+                }
+            }
+    )
     // Tasker事件触发工具
     handler.registerTool(
             name = "trigger_tasker_event",
