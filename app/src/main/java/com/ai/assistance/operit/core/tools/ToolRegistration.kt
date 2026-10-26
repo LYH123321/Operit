@@ -1459,6 +1459,35 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             }
     )
     
+    // MOD v2: AG 情报三件套
+    handler.registerTool(
+            name = "read_clipboard",
+            descriptionGenerator = { _ -> "Read system clipboard text" },
+            executor = { tool ->
+                com.ai.assistance.operit.core.tools.defaultTool.standard.AwarenessTools.ReadClipboardExecutor(context).invoke(tool)
+            }
+    )
+    handler.registerTool(
+            name = "write_clipboard",
+            descriptionGenerator = { _ -> "Write text to system clipboard" },
+            executor = { tool ->
+                com.ai.assistance.operit.core.tools.defaultTool.standard.AwarenessTools.WriteClipboardExecutor(context).invoke(tool)
+            }
+    )
+    handler.registerTool(
+            name = "get_app_usage",
+            descriptionGenerator = { _ -> "Query app usage stats (which apps used, how long)" },
+            executor = { tool ->
+                com.ai.assistance.operit.core.tools.defaultTool.standard.AwarenessTools.AppUsageExecutor(context).invoke(tool)
+            }
+    )
+    handler.registerTool(
+            name = "read_notifications",
+            descriptionGenerator = { _ -> "Read active system notifications snapshot" },
+            executor = { tool ->
+                com.ai.assistance.operit.core.tools.defaultTool.standard.AwarenessTools.ReadNotificationsExecutor().invoke(tool)
+            }
+    )
     // Tasker事件触发工具
     handler.registerTool(
             name = "trigger_tasker_event",
