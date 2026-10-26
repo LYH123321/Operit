@@ -314,6 +314,11 @@
         <service
             android:name=".services.Live2DService"
             android:exported="false" />
+        <!-- Media Center (novel/video/gamehall) -->
+        <activity
+            android:name=".ui.features.chat.webview.MediaWebActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
         <service
             android:name=".services.FloatingChatService"
             android:enabled="true"
