@@ -434,8 +434,19 @@ android {
         }
         debug {
             applicationIdSuffix = ".debug"
-            signingConfig = signingConfigs.getByName("debug")
-            resValue("string", "app_name", "Operit Debug")
+            // MOD: fixed signing so CI APKs upgrade over each other
+            val forkKs = rootProject.file("keystore.jks")
+            if (forkKs.isFile) {
+                val forkCfg = signingConfigs.findByName("forkDebug") ?: signingConfigs.create("forkDebug")
+                forkCfg.storeFile = forkKs
+                forkCfg.storePassword = "operit123"
+                forkCfg.keyAlias = "operit"
+                forkCfg.keyPassword = "operit123"
+                signingConfig = forkCfg
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
+            }
+            resValue("string", "app_name", "Operit Mod")
         }
         create("clone") {
             initWith(getByName("debug"))
