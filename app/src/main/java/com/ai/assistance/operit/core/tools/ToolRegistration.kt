@@ -1538,6 +1538,28 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                     result = com.ai.assistance.operit.core.tools.StringResultData("said: $t"))
             }
     )
+    handler.registerTool(
+            name = "open_media_center",
+            descriptionGenerator = { tool ->
+                val p = tool.parameters.find { it.name == "page" }?.value ?: "video"
+                "Open the media center page: $p (novel = free novel reader with 254 sources, video = free video center with m3u8 playback, gamehall = game center)"
+            },
+            executor = { tool ->
+                try {
+                    val p = tool.parameters.find { it.name == "page" }?.value ?: "video"
+                    val ctx = com.ai.assistance.operit.core.application.OperitApplication.instance
+                    val intent = android.content.Intent(ctx, com.ai.assistance.operit.ui.features.chat.webview.MediaWebActivity::class.java)
+                    intent.putExtra("page", p)
+                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    ctx.startActivity(intent)
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = true,
+                        result = com.ai.assistance.operit.core.tools.StringResultData("media center opened: $p"))
+                } catch (e: Exception) {
+                    com.ai.assistance.operit.data.model.ToolResult(toolName = tool.name, success = false,
+                        result = com.ai.assistance.operit.core.tools.StringResultData(""), error = e.message)
+                }
+            }
+    )
     // Tasker事件触发工具
     handler.registerTool(
             name = "trigger_tasker_event",
