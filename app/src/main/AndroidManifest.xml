@@ -312,6 +312,9 @@
         
         <!-- Floating Chat Service -->
         <service
+            android:name=".services.Live2DService"
+            android:exported="false" />
+        <service
             android:name=".services.FloatingChatService"
             android:enabled="true"
             android:exported="false"
