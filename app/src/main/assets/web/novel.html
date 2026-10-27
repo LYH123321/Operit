@@ -133,6 +133,15 @@ async function doSearch(){
     try{
       let surl = s.searchUrl.replace(/{{.*/,'').replace(/,\s*[^,]*$/,'');
       surl = surl.replace(/\{\$?\{?(key|keyword)\}?\}?/g, kw).replace(/searchKey|searchKeyW/g, kw);
+      // 相对路径书源：拼上书源站点域名（关键修复：大量书源 searchUrl 以 / 开头）
+      if(surl.startsWith('/') || !/^https?:/.test(surl)){
+        let base = String(s.bookSourceUrl||'');
+        if(!/^https?:/.test(base)) { try{ base = new URL(base).href; }catch(e){ return; } }
+        if(!/^https?:/.test(base)) return;
+        try{ surl = new URL(surl, base).href; }catch(e){ return; }
+      }
+      if(!/^https?:\/\//.test(surl)) return;
+      if(/[\n\r{}"]/.test(surl)) return;
       const {text, finalUrl} = await fetchText(surl);
       const d = doc(text);
       const rule = s.ruleSearch || {};
