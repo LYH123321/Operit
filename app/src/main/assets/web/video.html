@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>影视中心</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+<script>window.Hls||document.write('<script src="https://unpkg.com/hls.js@1/dist/hls.min.js"><\/script>')</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0d1117;color:#e6edf3;font-family:system-ui,sans-serif;padding-bottom:80px}
@@ -151,7 +152,37 @@ function play(btn,url,name){
   if(hls){hls.destroy();hls=null;}
   const real = url.includes('.m3u8') ? px(url) : url; // m3u8 经代理拉流
   if(url.includes('.m3u8') && window.Hls && Hls.isSupported()){
-    hls=new Hls({xhrSetup:x=>{ }});
+    const abs = new URL(url, location.href).href;
+    hls=new Hls({
+      pLoader: class extends Hls.DefaultConfig.loader {
+        load(context, config, callbacks){
+          // 把 m3u8 里的相对分片地址改写成绝对URL
+          if(context.url && context.url.includes('.m3u8')){
+            const orig = callbacks.onSuccess;
+            callbacks.onSuccess = function(response, stats, ctx, networkDetails){
+              if(response.data && typeof response.data === 'string'){
+                let base = new URL(ctx.url, location.href);
+                // ctx.url 可能已被代理，还原真实地址
+                if(ctx.url.startsWith(location.origin + '/api/proxy')){
+                  try{ const ru = new URL(ctx.url).searchParams.get('url'); if(ru) base = new URL(ru); }catch(e){}
+                }
+                response.data = response.data.replace(/^([^#\n]*\.ts[^#\n]*|[^#\n]*\.m3u8[^#\n]*)$/gm, (m)=>{
+                  if(!m.trim()) return m;
+                  try{ return new URL(m.trim(), base).href; }catch(e){ return m; }
+                });
+              }
+              orig(response, stats, ctx, networkDetails);
+            };
+          }
+          super.load(context, config, callbacks);
+        }
+      },
+      xhrSetup:x=>{ },
+      fragLoadingTimeOut:30000, manifestLoadingTimeOut:20000
+    });
+    hls.on(Hls.Events.ERROR,(ev,data)=>{
+      if(data.fatal){ document.getElementById('ptitle').textContent='播放失败：'+(data.details||data.type)+'（可换线路或换源试试）'; }
+    });
     hls.loadSource(real);
     hls.attachMedia(v);
   } else { v.src=real; }
