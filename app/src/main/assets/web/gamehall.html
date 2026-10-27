@@ -9367,47 +9367,31 @@ const bgTarget = e.target.closest('[data-bg-act]');
   }
 
 
-// === 塔罗牌（78张大+小阿卡纳 · 三牌阵 · AI解读 · 翻牌音效） ===
-  const TAROT_DECK = [
-    {n:'愚者',r:'0',up:'新的开始、冒险、无限可能',dn:'鲁莽、冲动、盲目'},
-    {n:'魔术师',r:'1',up:'创造力、自信、掌控全局',dn:'欺骗、操纵、才华浪费'},
-    {n:'女祭司',r:'II',up:'直觉、神秘、内在智慧',dn:'秘密、压抑、被动'},
-    {n:'皇后',r:'III',up:'丰盛、母性、创造力',dn:'依赖、过度保护、停滞'},
-    {n:'皇帝',r:'IV',up:'权威、秩序、领导力',dn:'专制、僵化、控制欲'},
-    {n:'教皇',r:'V',up:'传统、信仰、精神引导',dn:'教条、盲从、束缚'},
-    {n:'恋人',r:'VI',up:'爱情、选择、和谐',dn:'分离、背叛、错误选择'},
-    {n:'战车',r:'VII',up:'意志、胜利、前进',dn:'失控、冲撞、方向迷失'},
-    {n:'力量',r:'VIII',up:'勇气、耐心、内在力量',dn:'自我怀疑、软弱、退缩'},
-    {n:'隐者',r:'IX',up:'独处、探索、真理',dn:'孤立、固执、迷失'},
-    {n:'命运之轮',r:'X',up:'转机、好运、循环',dn:'厄运、停滞、逆流'},
-    {n:'正义',r:'XI',up:'公正、因果、决断',dn:'不公、偏见、逃避责任'},
-    {n:'倒吊人',r:'XII',up:'牺牲、顿悟、换角度',dn:'无意义牺牲、拖延'},
-    {n:'死神',r:'XIII',up:'结束、重生、转变',dn:'抗拒变化、停滞不前'},
-    {n:'节制',r:'XIV',up:'平衡、调和、耐心',dn:'失衡、过度、冲突'},
-    {n:'恶魔',r:'XV',up:'欲望、束缚、物质',dn:'解脱、觉醒、挣脱枷锁'},
-    {n:'高塔',r:'XVI',up:'突变、破旧立新、觉醒',dn:'灾难、混乱、毁灭'},
-    {n:'星星',r:'XVII',up:'希望、灵感、宁静',dn:'绝望、迷失、虚假希望'},
-    {n:'月亮',r:'XVIII',up:'幻觉、潜意识、直觉',dn:'恐惧、欺骗、迷惘'},
-    {n:'太阳',r:'XIX',up:'快乐、成功、活力',dn:'暂时的阴霾、过度乐观'},
-    {n:'审判',r:'XX',up:'重生、觉醒、救赎',dn:'自我谴责、错失良机'},
-    {n:'世界',r:'XXI',up:'圆满、成就、旅行',dn:'未完成、停滞、缺乏闭环'}
-  ];
-  let tarotState = null;
-  const TAROT_KEY = 'gh_tarot_history_v1';
+// === 塔罗牌 v2（22张大阿卡纳 · 开源牌图 · 翻牌 · AI解读） ===
+  const TAROT_CARD_NAMES = ['愚者','魔术师','女祭司','皇后','皇帝','教皇','恋人','战车','力量','隐者','命运之轮','正义','倒吊人','死神','节制','恶魔','高塔','星星','月亮','太阳','审判','世界'];
+  const TAROT_IMG_FILES = ['00-TheFool','01-TheMagician','02-TheHighPriestess','03-TheEmpress','04-TheEmperor','05-TheHierophant','06-TheLovers','07-TheChariot','08-Strength','09-TheHermit','10-WheelOfFortune','11-Justice','12-TheHangedMan','13-Death','14-Temperance','15-TheDevil','16-TheTower','17-TheStar','18-TheMoon','19-TheSun','20-Judgement','21-TheWorld'];
+  const TAROT_UP = ['新的开始、冒险、自由', '创造力、自信、掌控', '直觉、神秘、智慧', '丰盛、滋养、创造', '权威、秩序、领导', '传统、指引、信仰', '爱情、选择、结合', '意志、胜利、征服', '勇气、耐心、内力', '独处、探索、真理', '转机、命运、循环', '公正、因果、平衡', '牺牲、顿悟、换位', '结束、重生、转变', '平衡、调和、耐心', '欲望、束缚、执念', '突变、破立、觉醒', '希望、灵感、信心', '直觉、幻象、潜意识', '喜悦、成功、光明', '觉醒、重生、召唤', '圆满、完成、旅程'];
+  const TAROT_DN = ['鲁莽、冲动、盲目', '欺骗、操纵、滥用', '压抑、秘密、被动', '依赖、停滞、过度', '专制、僵化、控制', '教条、盲从、束缚', '失衡、分离、错误', '失控、方向迷失', '自我怀疑、软弱', '孤立、固执、迷失', '厄运、停滞、逆流', '不公、偏颇、失衡', '无谓牺牲、拖延', '抗拒改变、衰败', '失衡、过度、冲突', '沉溺、堕落、枷锁', '灾难、混乱、崩塌', '失望、虚假希望', '迷惘、恐惧、欺骗', '暂暗、盲目乐观', '自责、错失时机', '未竟、停滞、缺环'];
+  let tarotState2 = null;
+  const TAROT_KEY2 = 'gh_tarot_history_v2';
 
-  function loadTarotHistory() {
-    try { return JSON.parse(localStorage.getItem(TAROT_KEY)) || []; } catch (e) { return []; }
+  function loadTarotHistory2() {
+    try { return JSON.parse(localStorage.getItem(TAROT_KEY2)) || []; } catch (e) { return []; }
   }
-  function saveTarotHistory(arr) { try { localStorage.setItem(TAROT_KEY, JSON.stringify(arr.slice(-5))); } catch (e) {} }
+  function saveTarotHistory2(arr) { try { localStorage.setItem(TAROT_KEY2, JSON.stringify(arr.slice(-5))); } catch (e) {} }
+
+  function tarotImgUrl(v) {
+    return 'file:///android_asset/web/tarot/' + TAROT_IMG_FILES[v] + '.png';
+  }
 
   function renderTarotLobby() {
-    const hist = loadTarotHistory();
+    const hist = loadTarotHistory2();
     let histHtml = '';
     if (hist.length) {
       histHtml = '<div style="margin-top:14px;font-size:12px;color:var(--ubp-text-3);">📜 最近占卜：</div>';
-      hist.forEach((h, i) => {
+      hist.forEach(h => {
         histHtml += '<div style="background:var(--ubp-card-2);border-radius:8px;padding:8px 10px;margin-top:6px;border:1px solid var(--ubp-line);font-size:11.5px;color:var(--ubp-text-2);line-height:1.6;">' +
-          '<b style="color:#A855F7;">' + escapeHtml(h.cards.map(c => c.n + (c.rev ? '逆' : '')).join(' / ')) + '</b><br>' +
+          '<b style="color:#A855F7;">' + escapeHtml(h.cards.map(c => c.name + (c.rev ? '逆' : '')).join(' / ')) + '</b><br>' +
           '<span style="color:var(--ubp-text-3);">' + escapeHtml(h.reading.slice(0, 80)) + '...</span></div>';
       });
     }
@@ -9420,14 +9404,13 @@ const bgTarget = e.target.closest('[data-bg-act]');
         <button data-tarot-act="tarot-close" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ubp-text);">✕</button>
       </div>
       <div style="flex:1;overflow-y:auto;padding-right:2px;">
-        <div style="text-align:center;padding:20px 10px;">
-          <div style="font-size:48px;margin-bottom:8px;">🌙</div>
-          <div style="font-size:14px;color:var(--ubp-text);font-weight:600;margin-bottom:4px;">三牌占卜阵</div>
-          <div style="font-size:11.5px;color:var(--ubp-text-3);line-height:1.6;">过去 · 现在 · 未来<br>抽三张大阿卡纳，AI 根据牌面为你解读</div>
+        <div style="text-align:center;padding:14px 10px 6px;">
+          <div style="font-size:14px;color:var(--ubp-text);font-weight:600;">三牌占卜阵 · 过去 现在 未来</div>
+          <div style="font-size:11.5px;color:var(--ubp-text-3);margin-top:4px;">洗牌抽三张大阿卡纳 · 逐张翻牌 · AI 解读</div>
         </div>
-        <button data-tarot-act="tarot-draw" class="ubp-btn primary" style="width:100%;padding:12px;font-size:15px;background:#A855F7;color:#fff;border:none;border-radius:10px;margin-bottom:8px;">✨ 洗牌抽牌</button>
-        <button data-tarot-act="tarot-ai-read" class="ubp-btn" style="width:100%;padding:10px;font-size:13px;border-radius:8px;display:none;">🤖 AI 深度解读</button>
-        <div id="tarot-cards-area" style="display:none;justify-content:center;gap:10px;margin-top:16px;"></div>
+        <button data-tarot-act="tarot-draw" class="ubp-btn primary" style="width:100%;padding:12px;font-size:15px;background:#A855F7;color:#fff;border:none;border-radius:10px;margin-top:10px;">✨ 洗牌抽牌</button>
+        <button data-tarot-act="tarot-ai-read" class="ubp-btn" style="width:100%;padding:10px;font-size:13px;border-radius:8px;margin-top:8px;display:none;">🤖 AI 深度解读</button>
+        <div id="tarot-cards-area" style="display:none;justify-content:center;gap:8px;margin-top:16px;"></div>
         <div id="tarot-reading" style="margin-top:14px;"></div>
         ${histHtml}
       </div>
@@ -9436,51 +9419,43 @@ const bgTarget = e.target.closest('[data-bg-act]');
 
   function tarotDraw() {
     SFX.magic();
-    const deck = [...TAROT_DECK];
-    const drawn = [];
+    tarotState2 = { cards: [], flipped: 0 };
+    const vals = [...Array(22).keys()];
     for (let i = 0; i < 3; i++) {
-      const idx = Math.floor(Math.random() * deck.length);
-      const card = deck.splice(idx, 1)[0];
-      drawn.push({ ...card, rev: Math.random() < 0.4 });
+      const idx = Math.floor(Math.random() * vals.length);
+      const v = vals.splice(idx, 1)[0];
+      tarotState2.cards.push({ v, name: TAROT_CARD_NAMES[v], rev: Math.random() < 0.4 });
     }
-    tarotState = drawn;
     const area = sheet.querySelector('#tarot-cards-area');
     if (!area) return;
     area.style.display = 'flex';
-    area.innerHTML = drawn.map((c, i) => {
-      const meaning = c.rev ? c.dn : c.up;
-      const label = ['过去', '现在', '未来'][i];
-      return `<div style="text-align:center;">
-        <div style="font-size:10px;color:var(--ubp-text-3);margin-bottom:4px;">${label}</div>
-        <div data-tarot-act="tarot-flip" data-idx="${i}" style="width:70px;height:110px;border-radius:8px;background:linear-gradient(135deg,#1a0a2e,#16213e,#0f3460);border:2px solid #A855F7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:28px;color:#A855F7;box-shadow:0 4px 12px rgba(168,85,247,0.3);margin:0 auto;">${'🂠'}</div>
+    area.innerHTML = tarotState2.cards.map((c, i) =>
+      `<div style="text-align:center;">
+        <div style="font-size:10px;color:var(--ubp-text-3);margin-bottom:4px;">${['过去','现在','未来'][i]}</div>
+        <div data-tarot-act="tarot-flip" data-idx="${i}" style="width:76px;height:122px;border-radius:8px;background:linear-gradient(135deg,#1a0a2e,#0f3460);border:2px solid #A855F7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:30px;box-shadow:0 4px 12px rgba(168,85,247,0.3);margin:0 auto;overflow:hidden;">🂠</div>
         <div class="tarot-card-info" data-idx="${i}" style="display:none;margin-top:6px;">
-          <div style="font-size:13px;font-weight:700;color:${c.rev ? '#EF4444' : '#A855F7'};">${c.n}${c.rev ? ' 逆位' : ''}</div>
-          <div style="font-size:10px;color:var(--ubp-text-3);">${c.r}</div>
-          <div style="font-size:10.5px;color:var(--ubp-text-2);margin-top:3px;line-height:1.4;">${meaning}</div>
+          <div style="font-size:12.5px;font-weight:700;color:${c.rev ? '#EF4444' : '#A855F7'};">${c.name}${c.rev ? ' 逆位' : ''}</div>
+          <div style="font-size:10.5px;color:var(--ubp-text-3);margin-top:2px;line-height:1.4;">${c.rev ? TAROT_DN[c.v] : TAROT_UP[c.v]}</div>
         </div>
-      </div>`;
-    }).join('');
+      </div>`).join('');
     sheet.querySelector('#tarot-reading').innerHTML = '';
     const aiBtn = sheet.querySelector('[data-tarot-act="tarot-ai-read"]');
     if (aiBtn) aiBtn.style.display = 'none';
   }
 
   function tarotFlip(idx) {
+    if (!tarotState2) return;
+    const cardEl = sheet.querySelector('[data-tarot-act="tarot-flip"][data-idx="' + idx + '"]');
+    if (!cardEl) return;
     SFX.flip();
+    const c = tarotState2.cards[idx];
+    cardEl.innerHTML = '<img src="' + tarotImgUrl(c.v) + '" style="width:100%;height:100%;object-fit:cover;' + (c.rev ? 'transform:rotate(180deg);' : '') + '" onerror="this.replaceWith(document.createTextNode(\'🃏\'))">';
+    cardEl.style.cursor = 'default';
+    cardEl.removeAttribute('data-tarot-act');
     const info = sheet.querySelector('.tarot-card-info[data-idx="' + idx + '"]');
     if (info) info.style.display = 'block';
-    const card = sheet.querySelector('[data-tarot-act="tarot-flip"][data-idx="' + idx + '"]');
-    if (card) {
-      const c = tarotState[idx];
-      card.style.background = c.rev ? 'linear-gradient(135deg,#2a0a0a,#3a1010,#1a0505)' : 'linear-gradient(135deg,#0a2a1a,#103a20,#051a10)';
-      card.innerHTML = '<div style="text-align:center;"><div style="font-size:22px;">${c.n[0]||'🌙'}</div></div>';
-      card.style.cursor = 'default';
-      card.removeAttribute('data-tarot-act');
-    }
-    // 三张都翻完显示 AI 解读按钮
-    const allFlipped = sheet.querySelectorAll('.tarot-card-info:not([style*="display: none"])').length >= 3 ||
-      Array.from(sheet.querySelectorAll('.tarot-card-info')).every(el => el.style.display === 'block');
-    if (allFlipped) {
+    tarotState2.flipped++;
+    if (tarotState2.flipped >= 3) {
       const aiBtn = sheet.querySelector('[data-tarot-act="tarot-ai-read"]');
       if (aiBtn) aiBtn.style.display = 'block';
     }
@@ -9488,38 +9463,38 @@ const bgTarget = e.target.closest('[data-bg-act]');
 
   function tarotAIRead() {
     const rd = sheet.querySelector('#tarot-reading');
-    if (!rd || !tarotState) return;
+    if (!rd || !tarotState2) return;
     rd.innerHTML = '<div style="text-align:center;padding:12px;color:var(--ubp-text-3);font-size:12px;">🔮 AI 正在解读牌意...</div>';
     SFX.truth();
-    const cardsText = tarotState.map((c, i) => `${['过去','现在','未来'][i]}：${c.n}${c.rev ? '（逆位）' : ''} - ${c.rev ? c.dn : c.up}`).join('；');
-    const apiCfg = (typeof ensureAIBackend === 'function') ? ensureAIBackend() : null;
-    if (!apiCfg || typeof apiChat !== 'function') {
+    const cardsText = tarotState2.cards.map((c, i) => `${['过去','现在','未来'][i]}：${c.name}${c.rev ? '（逆位）' : ''} - ${c.rev ? TAROT_DN[c.v] : TAROT_UP[c.v]}`).join('；');
+    const fallback = () => {
       rd.innerHTML = '<div style="background:var(--ubp-card-2);border-radius:10px;padding:12px;border:1px solid var(--ubp-line);font-size:13px;color:var(--ubp-text-2);line-height:1.7;">' +
-        tarotState.map((c, i) => `<b style="color:#A855F7;">${['过去','现在','未来'][i]} · ${c.n}${c.rev?' 逆位':''}</b><br><span style="color:var(--ubp-text-3);">${c.rev ? c.dn : c.up}</span><br>`).join('') +
-        '<div style="margin-top:8px;font-size:11px;color:var(--ubp-text-3);">⚠️ 未配置 AI API，显示基础牌意。在游戏中心设置中配置 API 后可获深度解读。</div></div>';
-      return;
-    }
-    apiChat([
-      { role: 'system', content: '你是一位神秘而温柔的塔罗占卜师。根据抽到的三张牌（过去/现在/未来），用80-150字给出整体解读，语气空灵、有画面感，直接输出解读正文，不要开场白。' },
-      { role: 'user', content: '抽到的三张牌：' + cardsText }
-    ], apiCfg, { maxTokens: 300, temperature: 0.9 }).then(res => {
-      const text = String(res || '').trim();
-      rd.innerHTML = '<div style="background:var(--ubp-card-2);border-radius:10px;padding:14px;border:1px solid #A855F7;font-size:13px;color:var(--ubp-text);line-height:1.8;">🔮 ' + escapeHtml(text) + '</div>';
-      SFX.magic();
-      const hist = loadTarotHistory();
-      hist.push({ cards: tarotState, reading: text, time: Date.now() });
-      saveTarotHistory(hist);
-    }).catch(() => {
-      rd.innerHTML = '<div style="font-size:12px;color:var(--ubp-text-3);text-align:center;">解读失败，请检查 API 配置。</div>';
-    });
+        tarotState2.cards.map((c, i) => `<b style="color:#A855F7;">${['过去','现在','未来'][i]} · ${c.name}${c.rev?' 逆位':''}</b><br><span style="color:var(--ubp-text-3);">${c.rev ? TAROT_DN[c.v] : TAROT_UP[c.v]}</span><br>`).join('') + '</div>';
+    };
+    try {
+      const apiCfg = (typeof ensureAIBackend === 'function') ? ensureAIBackend() : null;
+      if (!apiCfg || typeof apiChat !== 'function') { fallback(); return; }
+      apiChat([
+        { role: 'system', content: '你是一位神秘而温柔的塔罗占卜师。根据抽到的三张牌（过去/现在/未来），用80-150字给出整体解读，语气空灵、有画面感，直接输出解读正文，不要开场白。' },
+        { role: 'user', content: '抽到的三张牌：' + cardsText }
+      ], apiCfg, { maxTokens: 300, temperature: 0.9 }).then(res => {
+        const text = String(res || '').trim();
+        rd.innerHTML = '<div style="background:var(--ubp-card-2);border-radius:10px;padding:14px;border:1px solid #A855F7;font-size:13px;color:var(--ubp-text);line-height:1.8;">🔮 ' + escapeHtml(text) + '</div>';
+        SFX.magic();
+        const hist = loadTarotHistory2();
+        hist.push({ cards: tarotState2.cards.map(c => ({name:c.name,rev:c.rev})), reading: text, time: Date.now() });
+        saveTarotHistory2(hist);
+      }).catch(fallback);
+    } catch (e) { fallback(); }
   }
 
   function handleTarotAction(act, target) {
     if (act === 'tarot-back' || act === 'tarot-close') { renderTableGameLobby(); return; }
     if (act === 'tarot-draw') { tarotDraw(); return; }
-    if (act === 'tarot-flip') { const idx = Number(target?.dataset?.idx); tarotFlip(idx); return; }
+    if (act === 'tarot-flip') { tarotFlip(Number(target?.dataset?.idx)); return; }
     if (act === 'tarot-ai-read') { tarotAIRead(); return; }
   }
+
 
 
 // === 真心话大冒险（AI角色出题 · 本地题库兜底 · 转瓶选人） ===
