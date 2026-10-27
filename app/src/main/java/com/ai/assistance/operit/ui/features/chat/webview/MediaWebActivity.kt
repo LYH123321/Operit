@@ -115,6 +115,8 @@ class MediaWebActivity : AppCompatActivity() {
         val am = assets
         val names = am.list("web") ?: emptyArray()
         for (name in names) {
+            // 跳过子目录（如 web/tarot/），否则 am.open 目录会抛 FileNotFoundException 闪退
+            if (am.list("web/$name") != null) continue
             val out = File(targetDir, name)
             am.open("web/$name").use { input ->
                 val tmp = File(targetDir, "$name.tmp")
