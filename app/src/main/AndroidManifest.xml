@@ -10,6 +10,7 @@
         android:name="android.hardware.camera.any"
         android:required="false" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -519,6 +520,7 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+            <service android:name=".services.MediaPlaybackService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
     </application>
 
 </manifest>
