@@ -44,6 +44,14 @@ class MediaWebActivity : AppCompatActivity() {
 
         // 1. 同步 assets/web -> workspace/web
         val webDir = syncAssets()
+        // 1.5 确保本地 HTTP 服务已启动（否则 127.0.0.1:8093 连接被拒）
+        try {
+            com.ai.assistance.operit.ui.features.chat.webview.LocalWebServer
+                .getInstance(applicationContext, com.ai.assistance.operit.ui.features.chat.webview.LocalWebServer.ServerType.WORKSPACE)
+                .start()
+        } catch (e: Exception) {
+            android.util.Log.w("MediaWebActivity", "local server start failed: " + e.message)
+        }
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
