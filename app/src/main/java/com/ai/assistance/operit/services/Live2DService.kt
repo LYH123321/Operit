@@ -152,6 +152,8 @@ class Live2DService : Service() {
             useWideViewPort = true
             mediaPlaybackRequiresUserGesture = false
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            allowFileAccessFromFileURLs = true
+            allowUniversalAccessFromFileURLs = true
         }
         wv.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         wv.webChromeClient = WebChromeClient()
