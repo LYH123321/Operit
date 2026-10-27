@@ -106,15 +106,22 @@ body{background:#0d1117;color:#e6edf3;font-family:system-ui,sans-serif;padding-b
 </div>
 
 <script>
-const SOURCES = [
-  {name:'量子', url:'https://cj.lziapi.com/api.php/provide/vod/', on:true},
-  {name:'非凡', url:'https://cj.ffzy.tv/api.php/provide/vod/', on:true},
-  {name:'天空', url:'https://api.tiankongapi.com/api.php/provide/vod/', on:true},
-  {name:'快看', url:'https://kuaikan-api.com/api.php/provide/vod/', on:true},
-  {name:'魔猪', url:'https://caiji.moduzy.com/api.php/provide/vod/', on:true},
+const BUILTIN_SOURCES = [
+  {name:'量子', url:'https://cj.lziapi.com/api.php/provide/vod/', on:true, builtin:true},
+  {name:'金鹰', url:'https://jinyingzy.com/api.php/provide/vod/', on:true, builtin:true},
+  {name:'樱花', url:'https://yhzy.cc/api.php/provide/vod/', on:true, builtin:true},
 ];
-// load settings
-try{const s=JSON.parse(localStorage.getItem('vsrc')||'{}');SOURCES.forEach(x=>{if(s[x.name]!==undefined)x.on=s[x.name];});}catch(e){}
+let SOURCES = [];
+function loadSources(){
+  let custom = [];
+  try{ custom = JSON.parse(localStorage.getItem('vcustom')||'[]'); }catch(e){}
+  let saved = {};
+  try{ saved = JSON.parse(localStorage.getItem('vsrc')||'{}'); }catch(e){}
+  SOURCES = BUILTIN_SOURCES.concat(custom).map(s=>({...s, on: saved[s.name]===undefined ? s.on : saved[s.name]}));
+}
+function saveSrcSettings(){const s={};SOURCES.forEach(x=>s[x.name]=x.on);localStorage.setItem('vsrc',JSON.stringify(s));}
+function saveCustom(){const c=SOURCES.filter(x=>!x.builtin);localStorage.setItem('vcustom',JSON.stringify(c.map(x=>({name:x.name,url:x.url}))));}
+loadSources();
 function saveSrcSettings(){const s={};SOURCES.forEach(x=>s[x.name]=x.on);localStorage.setItem('vsrc',JSON.stringify(s));}
 let curList=[], activeSrc='全部';
 function px(u){ return '/api/proxy?url=' + encodeURIComponent(u); }
@@ -285,10 +292,28 @@ function renderSettings(){
   const sl=document.getElementById('srcList'); sl.innerHTML='';
   SOURCES.forEach((s,i)=>{
     const el=document.createElement('div'); el.className='item';
-    el.innerHTML=`<span>${s.name}</span><input type="checkbox" id="src${i}" ${s.on?'checked':''}><label for="src${i}"></label>`;
+    const del = s.builtin ? '' : `<button class="delBtn" data-i="${i}">✕</button>`;
+el.innerHTML=`<span>${s.name}${s.builtin?'':' <small style="color:#888">(自定义)</small>'}</span>${del}<input type="checkbox" id="src${i}" ${s.on?'checked':''}><label for="src${i}"></label>`;
     el.querySelector('input').onchange=function(){s.on=this.checked;saveSrcSettings();};
+    const db=el.querySelector('.delBtn');
+    if(db) db.onclick=()=>{ if(confirm('删除源「'+s.name+'」？')){ SOURCES=SOURCES.filter(x=>x!==s); saveCustom(); saveSrcSettings(); renderSettings(); } };
     sl.appendChild(el);
   });
+  const add=document.createElement('div'); add.className='item';
+  add.innerHTML=`<input id="newSrcName" placeholder="源名称" style="width:70px;padding:6px;border:1px solid #444;border-radius:6px;background:#222;color:#fff">
+  <input id="newSrcUrl" placeholder="苹果CMS采集API地址" style="flex:1;padding:6px;border:1px solid #444;border-radius:6px;background:#222;color:#fff;font-size:11px">
+  <button onclick="addCustomSrc()" style="padding:6px 12px;border:none;border-radius:6px;background:#4a9eff;color:#fff">添加</button>`;
+  sl.appendChild(add);
+}
+function addCustomSrc(){
+  const n=document.getElementById('newSrcName').value.trim();
+  const u=document.getElementById('newSrcUrl').value.trim();
+  if(!n||!u){alert('请填名称和API地址');return;}
+  if(!/^https?:\/\//.test(u)){alert('地址要以 http(s):// 开头');return;}
+  if(!/api\.php|provide\/vod/.test(u)){alert('地址需为苹果CMS采集接口，通常含 api.php/provide/vod/');}
+  SOURCES.push({name:n,url:u,on:true});
+  saveCustom(); saveSrcSettings(); renderSettings();
+  alert('已添加源「'+n+'」，注意：内置源仅为官方常用接口，自定义源需自己确保可用');
 }
 function showSettings(){renderSettings();document.getElementById('settings').style.display='flex';}
 document.getElementById('kw').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
