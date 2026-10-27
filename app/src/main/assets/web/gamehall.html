@@ -5,6 +5,7 @@
 <style>html,body{margin:0;padding:0;background:#111;color:#eee;font-family:sans-serif;overflow:hidden}</style>
 </head><body>
 <script>
+if(typeof window.$==='undefined'){window.$=function(fn){if(document.readyState!=='loading'){fn();}else{document.addEventListener('DOMContentLoaded',fn);}};window.$.ajax=null;}
 // ===== 游戏大厅 V0.2.2（可拖动悬浮按钮 + 可拖动面板 + 自定义角色） =====
 // 悬浮游戏机按钮 → 圆形游戏图标 → 各游戏大厅（麻将对弈/棋牌/小游戏/推理桌游全部内置）
 // 角色来源：读取「数据库本体」的重要角色表/恋爱对象表/人物关系表，也支持大厅内创建自定义角色
