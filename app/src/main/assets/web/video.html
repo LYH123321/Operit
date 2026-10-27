@@ -9,10 +9,16 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0d1117;color:#e6edf3;font-family:system-ui,sans-serif;padding-bottom:80px}
-.h{padding:14px 16px;font-size:20px;font-weight:700;background:#161b22;position:sticky;top:0;z-index:5;border-bottom:1px solid #30363d}
+.h{padding:14px 16px;font-size:20px;font-weight:700;background:#161b22;position:sticky;top:0;z-index:5;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center}
+.h .btns{display:flex;gap:6px}
+.h .btns button{background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:4px 10px;font-size:13px}
+.h .btns button.on{color:#58a6ff;border-color:#58a6ff}
 .search{display:flex;gap:8px;padding:12px 16px;background:#161b22;position:sticky;top:52px;z-index:5}
 .search input{flex:1;padding:10px 14px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#e6edf3;font-size:15px;outline:none}
 .search button{padding:0 20px;border-radius:8px;border:none;background:#238636;color:#fff;font-size:15px;font-weight:600}
+.srcFilter{display:flex;gap:6px;padding:4px 16px 8px;overflow-x:auto;background:#161b22;flex-wrap:wrap}
+.srcFilter button{padding:3px 10px;border-radius:12px;border:1px solid #30363d;background:#0d1117;color:#8b949e;font-size:12px;white-space:nowrap}
+.srcFilter button.on{color:#fff;border-color:#238636;background:#23863622}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:12px;padding:14px 16px}
 .card{cursor:pointer}
 .poster{aspect-ratio:3/4;background:#21262d;border-radius:8px;overflow:hidden;position:relative}
@@ -34,14 +40,43 @@ body{background:#0d1117;color:#e6edf3;font-family:system-ui,sans-serif;padding-b
 .loading,.empty{padding:40px;text-align:center;color:#8b949e}
 .line{height:2px;background:linear-gradient(90deg,#238636,#1f6feb);animation:s 1s infinite alternate;margin:10px 16px;border-radius:2px}
 @keyframes s{from{width:20%}to{width:90%}}
+/* 设置面板 */
+#settings{position:fixed;inset:0;background:#0d1117;z-index:55;display:none;flex-direction:column}
+#settings .sh{padding:14px 16px;font-size:18px;font-weight:700;background:#161b22;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center}
+#settings .body{flex:1;overflow:auto;padding:14px 16px}
+#settings .body h3{font-size:14px;color:#8b949e;margin:16px 0 8px}
+#settings .body .item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #161b22}
+#settings .body .item span{font-size:15px}
+#settings .body .item label{position:relative;width:42px;height:24px}
+#settings .body .item input{display:none}
+#settings .body .item label::before{content:'';position:absolute;inset:0;border-radius:12px;background:#30363d;transition:.2s}
+#settings .body .item label::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+#settings .body .item input:checked+label::before{background:#238636}
+#settings .body .item input:checked+label::after{left:20px}
+/* 历史面板 */
+#history{position:fixed;inset:0;background:#0d1117;z-index:55;display:none;flex-direction:column}
+#history .sh{padding:14px 16px;font-size:18px;font-weight:700;background:#161b22;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center}
+#history .body{flex:1;overflow:auto;padding:8px 16px}
+#history .hitem{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #161b22;cursor:pointer}
+#history .hitem .hp{width:54px;height:72px;border-radius:6px;background:#21262d;overflow:hidden;flex-shrink:0}
+#history .hitem .hp img{width:100%;height:100%;object-fit:cover}
+#history .hitem .hi{flex:1;min-width:0}
+#history .hitem .hn{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#history .hitem .he{font-size:12px;color:#8b949e;margin-top:2px}
 </style>
 </head>
 <body>
-<div class="h">🎬 影视中心 <span style="font-size:11px;color:#8b949e">多源免费聚合</span></div>
+<div class="h">🎬 影视中心
+  <div class="btns">
+    <button onclick="showHistory()">🕐 历史</button>
+    <button onclick="showSettings()">⚙️ 设置</button>
+  </div>
+</div>
 <div class="search">
   <input id="kw" placeholder="搜索电视剧 / 电影 / 综艺…" value="庆余年">
   <button onclick="doSearch()">搜索</button>
 </div>
+<div id="srcFilter" class="srcFilter" style="display:none"></div>
 <div id="status" class="empty">输入片名开始搜索，资源来自公开采集站</div>
 <div id="line" class="line" style="display:none"></div>
 <div id="grid" class="grid"></div>
@@ -52,34 +87,54 @@ body{background:#0d1117;color:#e6edf3;font-family:system-ui,sans-serif;padding-b
   <div class="pbar"><div class="t" id="ptitle"></div><div id="ptabs" class="tabs"></div></div>
   <div id="eps" class="eps"></div>
 </div>
+
+<!-- 设置面板 -->
+<div id="settings">
+  <div class="sh"><span>⚙️ 设置</span><button onclick="settings.style.display='none'" style="border:none;background:none;color:#8b949e;font-size:18px">✕</button></div>
+  <div class="body">
+    <h3>资源源（勾选启用的搜索源）</h3>
+    <div id="srcList"></div>
+    <h3>清除数据</h3>
+    <button onclick="if(confirm('确定清除所有观看历史？')){localStorage.removeItem('vhistory');renderHistory();}" style="padding:10px 20px;border-radius:8px;border:1px solid #f8514955;background:#f8514922;color:#f85149;font-size:14px">🗑️ 清除观看历史</button>
+  </div>
+</div>
+
+<!-- 历史面板 -->
+<div id="history">
+  <div class="sh"><span>🕐 观看历史</span><button onclick="history.style.display='none'" style="border:none;background:none;color:#8b949e;font-size:18px">✕</button></div>
+  <div class="body" id="historyBody"></div>
+</div>
+
 <script>
-// 苹果CMS 采集资源站（JSON API，均经 /api/proxy 转发解决 CORS）
 const SOURCES = [
-  {name:'量子', url:'https://cj.lziapi.com/api.php/provide/vod/'},
-  {name:'非凡', url:'https://cj.ffzy.tv/api.php/provide/vod/'},
-  {name:'天空', url:'https://api.tiankongapi.com/api.php/provide/vod/'},
-  {name:'快看', url:'https://kuaikan-api.com/api.php/provide/vod/'},
-  {name:'魔猪', url:'https://caiji.moduzy.com/api.php/provide/vod/'},
+  {name:'量子', url:'https://cj.lziapi.com/api.php/provide/vod/', on:true},
+  {name:'非凡', url:'https://cj.ffzy.tv/api.php/provide/vod/', on:true},
+  {name:'天空', url:'https://api.tiankongapi.com/api.php/provide/vod/', on:true},
+  {name:'快看', url:'https://kuaikan-api.com/api.php/provide/vod/', on:true},
+  {name:'魔猪', url:'https://caiji.moduzy.com/api.php/provide/vod/', on:true},
 ];
-let curList=[], curEps=[], curEp=0;
-
+// load settings
+try{const s=JSON.parse(localStorage.getItem('vsrc')||'{}');SOURCES.forEach(x=>{if(s[x.name]!==undefined)x.on=s[x.name];});}catch(e){}
+function saveSrcSettings(){const s={};SOURCES.forEach(x=>s[x.name]=x.on);localStorage.setItem('vsrc',JSON.stringify(s));}
+let curList=[], activeSrc='全部';
 function px(u){ return '/api/proxy?url=' + encodeURIComponent(u); }
-
 async function fetchJson(url){
   const r = await fetch(px(url), {headers:{'User-Agent':'Mozilla/5.0 (Linux; Android 13) Chrome/120 Mobile'}});
   if(!r.ok) throw new Error(r.status);
   return r.json();
 }
-
 async function doSearch(){
   const kw = document.getElementById('kw').value.trim();
   if(!kw) return;
   document.getElementById('status').className='loading';
   document.getElementById('status').textContent='搜索中…';
+  document.getElementById('status').style.display='block';
   document.getElementById('line').style.display='block';
   document.getElementById('grid').innerHTML='';
+  document.getElementById('srcFilter').style.display='none';
   curList=[];
-  const jobs = SOURCES.map(async s=>{
+  const enabled = SOURCES.filter(s=>s.on);
+  const jobs = enabled.map(async s=>{
     try{
       const d = await fetchJson(s.url + '?ac=videolist&wd=' + encodeURIComponent(kw));
       (d.list||[]).forEach(v=>curList.push({s:s.name, v:v}));
@@ -89,28 +144,40 @@ async function doSearch(){
   document.getElementById('line').style.display='none';
   if(!curList.length){ document.getElementById('status').className='empty'; document.getElementById('status').textContent='无结果，换关键词试试'; return; }
   document.getElementById('status').style.display='none';
+  renderSrcFilter();
   render();
 }
-
+function renderSrcFilter(){
+  const sf=document.getElementById('srcFilter');
+  const srcs=['全部',...new Set(curList.map(i=>i.s))];
+  sf.innerHTML='';
+  srcs.forEach(n=>{
+    const b=document.createElement('button');
+    b.textContent=n; b.className=n===activeSrc?'on':'';
+    b.onclick=()=>{activeSrc=n;renderSrcFilter();render();};
+    sf.appendChild(b);
+  });
+  sf.style.display='flex';
+}
 function render(){
   const g=document.getElementById('grid'); g.innerHTML='';
-  curList.forEach((it,i)=>{
+  const list = activeSrc==='全部'?curList:curList.filter(i=>i.s===activeSrc);
+  list.forEach((it)=>{
     const v=it.v;
     const el=document.createElement('div'); el.className='card';
     const pic=v.vod_pic||'';
     el.innerHTML=`<div class="poster">${pic?`<img src="${px(pic)}" loading="lazy" onerror="this.style.display='none'">`:''}<span class="src">${it.s}</span></div>
       <div class="vname">${v.vod_name||''}</div><div class="vmeta">${(v.vod_year||'')+' · '+(v.vod_remarks||v.type_name||'')}</div>`;
-    el.onclick=()=>openDetail(it.s, v.vod_id);
+    el.onclick=()=>openDetail(it.s, v.vod_id, v.vod_name, v.vod_pic);
     g.appendChild(el);
   });
 }
-
-async function openDetail(srcName, id){
+async function openDetail(srcName, id, vname, vpic){
   const s=SOURCES.find(x=>x.name===srcName);
   try{
     const d=await fetchJson(s.url+'?ac=detail&ids='+id);
     const v=d.list[0];
-    curEps=[]; 
+    const curEps=[];
     const froms=(v.vod_play_from||'').split('$$$');
     const urls=(v.vod_play_url||'').split('$$$');
     froms.forEach((f,li)=>{
@@ -120,49 +187,45 @@ async function openDetail(srcName, id){
       });
     });
     document.getElementById('ptitle').textContent=v.vod_name+'（'+srcName+'）';
-    // 线路 tabs
     const lines=[...new Set(curEps.map(e=>e.line))];
     const tb=document.getElementById('ptabs'); tb.innerHTML='';
     lines.forEach(ln=>{
       const b=document.createElement('button'); b.textContent=ln;
-      b.onclick=()=>renderEps(ln);
+      b.onclick=()=>renderEps(ln,curEps,vname,vpic,srcName,id);
       tb.appendChild(b);
     });
     document.getElementById('playerWrap').style.display='flex';
-    if(lines.length) renderEps(lines[0]);
+    if(lines.length) renderEps(lines[0],curEps,vname,vpic,srcName,id);
   }catch(e){ alert('加载失败:'+e.message); }
 }
-
-function renderEps(line){
+function renderEps(line,curEps,vname,vpic,srcName,id){
   document.querySelectorAll('#ptabs button').forEach(b=>b.classList.toggle('on',b.textContent===line));
   const eps=curEps.filter(e=>e.line===line);
   const eb=document.getElementById('eps'); eb.innerHTML='';
   eps.forEach((e,i)=>{
     const b=document.createElement('button'); b.textContent=e.name||('第'+(i+1)+'集');
-    b.onclick=()=>play(b,e.url,e.name);
+    b.onclick=()=>play(b,e.url,e.name,vname,vpic,srcName,line,i,eps.length,id);
     eb.appendChild(b);
   });
 }
-
 let hls=null;
-function play(btn,url,name){
+function play(btn,url,name,vname,vpic,srcName,line,epIdx,epTotal,vid){
   document.querySelectorAll('#eps button').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
+  // save history
+  addHistory({name:vname, ep:name, src:srcName, line:line, url:url, pic:vpic, vid:vid, time:Date.now()});
   const v=document.getElementById('video');
   if(hls){hls.destroy();hls=null;}
-  const real = url.includes('.m3u8') ? px(url) : url; // m3u8 经代理拉流
+  const real = url.includes('.m3u8') ? px(url) : url;
   if(url.includes('.m3u8') && window.Hls && Hls.isSupported()){
-    const abs = new URL(url, location.href).href;
     hls=new Hls({
       pLoader: class extends Hls.DefaultConfig.loader {
         load(context, config, callbacks){
-          // 把 m3u8 里的相对分片地址改写成绝对URL
           if(context.url && context.url.includes('.m3u8')){
             const orig = callbacks.onSuccess;
             callbacks.onSuccess = function(response, stats, ctx, networkDetails){
               if(response.data && typeof response.data === 'string'){
                 let base = new URL(ctx.url, location.href);
-                // ctx.url 可能已被代理，还原真实地址
                 if(ctx.url.startsWith(location.origin + '/api/proxy')){
                   try{ const ru = new URL(ctx.url).searchParams.get('url'); if(ru) base = new URL(ru); }catch(e){}
                 }
@@ -177,7 +240,6 @@ function play(btn,url,name){
           super.load(context, config, callbacks);
         }
       },
-      xhrSetup:x=>{ },
       fragLoadingTimeOut:30000, manifestLoadingTimeOut:20000
     });
     hls.on(Hls.Events.ERROR,(ev,data)=>{
@@ -189,12 +251,46 @@ function play(btn,url,name){
   v.play().catch(()=>{});
   document.getElementById('ptitle').textContent=name+' · 播放中';
 }
-
 function closePlayer(){
   const v=document.getElementById('video'); v.pause();
   if(hls){hls.destroy();hls=null;}
   document.getElementById('playerWrap').style.display='none';
 }
+// 历史
+function addHistory(item){
+  let h=[];
+  try{h=JSON.parse(localStorage.getItem('vhistory')||'[]');}catch(e){}
+  h=h.filter(x=>!(x.vid===item.vid&&x.ep===item.ep));
+  h.unshift(item);
+  h=h.slice(0,100);
+  localStorage.setItem('vhistory',JSON.stringify(h));
+}
+function renderHistory(){
+  const body=document.getElementById('historyBody');
+  let h=[];
+  try{h=JSON.parse(localStorage.getItem('vhistory')||'[]');}catch(e){}
+  if(!h.length){body.innerHTML='<div class="empty">还没有观看记录</div>';return;}
+  body.innerHTML='';
+  h.forEach(it=>{
+    const el=document.createElement('div'); el.className='hitem';
+    el.innerHTML=`<div class="hp">${it.pic?`<img src="${px(it.pic)}" onerror="this.style.display='none'">`:''}</div>
+      <div class="hi"><div class="hn">${it.name}</div><div class="he">${it.ep||''} · ${it.src||''} · ${new Date(it.time).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'numeric',minute:'numeric'})}</div></div>`;
+    el.onclick=()=>{history.style.display='none';if(it.url)play({classList:{remove:()=>{}},add:()=>{}},it.url,it.ep,it.name,it.pic,it.src,'',0,0,it.vid);document.getElementById('playerWrap').style.display='flex';};
+    body.appendChild(el);
+  });
+}
+function showHistory(){renderHistory();document.getElementById('history').style.display='flex';}
+// 设置
+function renderSettings(){
+  const sl=document.getElementById('srcList'); sl.innerHTML='';
+  SOURCES.forEach((s,i)=>{
+    const el=document.createElement('div'); el.className='item';
+    el.innerHTML=`<span>${s.name}</span><input type="checkbox" id="src${i}" ${s.on?'checked':''}><label for="src${i}"></label>`;
+    el.querySelector('input').onchange=function(){s.on=this.checked;saveSrcSettings();};
+    sl.appendChild(el);
+  });
+}
+function showSettings(){renderSettings();document.getElementById('settings').style.display='flex';}
 document.getElementById('kw').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
 </script>
 </body>
