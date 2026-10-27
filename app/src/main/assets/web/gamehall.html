@@ -8786,6 +8786,10 @@ const bgTarget = e.target.closest('[data-bg-act]');
         handleXXLAction(xxlAct, xxlTarget);
         return;
       }
+      const tarotTarget = e.target.closest('[data-tarot-act]');
+      if (tarotTarget) { handleTarotAction(tarotTarget.dataset.tarotAct, tarotTarget); return; }
+      const todTarget = e.target.closest('[data-tod-act]');
+      if (todTarget) { handleTODAction(todTarget.dataset.todAct, todTarget); return; }
       const mjTarget = e.target.closest('[data-mj-act]');
       if (mjTarget) {
         const mjAct = mjTarget.dataset.mjAct;
@@ -9223,6 +9227,397 @@ const bgTarget = e.target.closest('[data-bg-act]');
   }
 
   // ========== 棋牌 · 牌桌大厅（麻将 / 斗地主 / 炸金花 / 德州扑克） ==========
+// ========== AI台词库（本地参考库 + AI实时生成）+ 塔罗牌 + 真心话大冒险 + 音效引擎 ==========
+// === 音效引擎：Web Audio 本地合成，零素材离线可用 ===
+  let _ac = null;
+  function sfxCtx() { if (!_ac) { try { _ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return _ac; }
+  function sfxTone(freq, dur, type, vol, delay) {
+    const ac = sfxCtx(); if (!ac) return;
+    try {
+      if (ac.state === 'suspended') ac.resume();
+      const t0 = ac.currentTime + (delay || 0);
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol || 0.15, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+    } catch (e) {}
+  }
+  function sfxNoise(dur, vol, delay) {
+    const ac = sfxCtx(); if (!ac) return;
+    try {
+      if (ac.state === 'suspended') ac.resume();
+      const t0 = ac.currentTime + (delay || 0);
+      const len = Math.floor(ac.sampleRate * dur);
+      const buf = ac.createBuffer(1, len, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const src = ac.createBufferSource(); src.buffer = buf;
+      const g = ac.createGain(); g.gain.value = vol || 0.1;
+      const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 900;
+      src.connect(f); f.connect(g); g.connect(ac.destination); src.start(t0);
+    } catch (e) {}
+  }
+  const SFX = {
+    deal: () => { for (let i = 0; i < 4; i++) sfxNoise(0.07, 0.09, i * 0.09); },
+    flip: () => { sfxNoise(0.12, 0.13); sfxTone(660, 0.09, 'triangle', 0.08, 0.03); },
+    click: () => sfxTone(880, 0.05, 'triangle', 0.1),
+    win: () => { sfxTone(523, 0.13, 'triangle', 0.14); sfxTone(659, 0.13, 'triangle', 0.14, 0.12); sfxTone(784, 0.2, 'triangle', 0.15, 0.24); sfxTone(1047, 0.3, 'triangle', 0.16, 0.38); },
+    lose: () => { sfxTone(392, 0.18, 'sawtooth', 0.1); sfxTone(311, 0.28, 'sawtooth', 0.1, 0.16); sfxTone(233, 0.4, 'sawtooth', 0.1, 0.34); },
+    chip: () => { sfxNoise(0.05, 0.1); sfxTone(1200, 0.04, 'square', 0.05, 0.02); },
+    magic: () => { for (let i = 0; i < 5; i++) sfxTone(500 + i * 180, 0.12, 'sine', 0.07, i * 0.07); },
+    dare: () => { sfxTone(220, 0.2, 'sawtooth', 0.12); sfxTone(330, 0.2, 'sawtooth', 0.12, 0.1); sfxTone(440, 0.25, 'sawtooth', 0.12, 0.2); },
+    truth: () => { sfxTone(700, 0.1, 'sine', 0.1); sfxTone(900, 0.15, 'sine', 0.1, 0.1); }
+  };
+
+// === 角色语气台词库（本地参考库：AI 生成优先，离线/失败随机兜底） ===
+  const VOICE_LIB_KEY = 'gh_voice_lib_v1';
+  // 通用语气库：按 人设tone × 场景 组织，任何角色都能按其 tone 匹配
+  const VOICE_LIB = {
+    version: 1,
+    tones: ['活泼', '傲娇', '温柔', '毒舌', '高冷', '元气'],
+    scenes: ['deal', 'play', 'win', 'lose', 'tease', 'think'],
+    lib: {
+      '活泼': {
+        deal: ['来来来发牌啦！手气一定是我的！', '洗牌洗牌～今天的我可是幸运女神附体哦！', '哇这牌摸起来就感觉要赢！'],
+        play: ['嘿嘿，看我这一手！', '轮到我了轮到我了～', '接招吧！'],
+        win: ['耶耶耶！我赢啦！', '就说今天运气超好吧～', '哈哈哈哈服不服！'],
+        lose: ['呜…下次一定赢回来！', '哼，刚才是失误啦！', '不算不算重来！'],
+        tease: ['你刚刚那个表情也太好玩了吧哈哈哈！', '喂喂，脸红什么呀～', '就这？就这？'],
+        think: ['唔…让我想想…', '这步棋有点难欸…', '嗯嗯嗯…有了！']
+      },
+      '傲娇': {
+        deal: ['哼，发牌就发牌，别指望我会放水。', '牌是我洗的，运气也归我管。', '才、才不是紧张，只是牌桌有点热。'],
+        play: ['看好了，这才叫技术。', '就这张，接好了。', '哼，学着我点。'],
+        win: ['理所当然的结果而已。', '哼，谢我一声也不是不行。', '记住了，这就是差距。'],
+        lose: ['……刚才手滑了而已。', '别得意，下局就没这么好运了。', '哼，我只是让让你。'],
+        tease: ['笨蛋才会在这种地方犹豫。', '你的表情…哼，有点好笑。', '别、别盯着我看啊！'],
+        think: ['……容我考虑三秒。', '啧，选哪个都行吧。', '这种程度还难不倒我。']
+      },
+      '温柔': {
+        deal: ['牌来啦，大家慢慢来～', '这局会顺利的，我有预感。', '来，小心手别碰乱牌哦。'],
+        play: ['那我出这张，可以吗？', '这样走的话…应该不错。', '请多指教啦。'],
+        win: ['啊，赢了…大家都玩得很棒呢。', '真是幸运的一局，谢谢陪伴。', '下次也想和你们一起玩。'],
+        lose: ['没关系，过程很开心。', '是我还不够熟练呢，继续加油。', '输了也笑着收场吧。'],
+        tease: ['你认真的样子很可爱哦。', '呵呵，别着急嘛。', '慢慢来，牌局还长呢。'],
+        think: ['让我安静想一下下…', '唔，两个选择都有道理呢。', '相信直觉吧。']
+      },
+      '毒舌': {
+        deal: ['牌都拿不稳，先回家练三年。', '发牌了，输的人请自觉结账。', '就这手牌还想跟我斗？'],
+        play: ['就这？我闭眼都比你强。', '出这张，识相的快点投降。', '看清楚，这叫降维打击。'],
+        win: ['意料之中，不必鼓掌。', '差距太大，下次建议直接认输。', '谢谢配合，下一位。'],
+        lose: ['……设备问题，仅此一次。', '运气游戏毫无技术含量。', '行吧，就当让你们一回。'],
+        tease: ['你那表情是牌看不懂还是字不认识？', '犹豫就会败北，莽撞直接白给。', '就这水平也敢坐我对面？'],
+        think: ['哼，杀鸡焉用牛刀。', '随便走一步都能赢你。', '不用想，实力碾压。']
+      },
+      '高冷': {
+        deal: ['开始吧。', '牌局规则，无需多言。', '……可以了。'],
+        play: ['这样。', '……继续。', '该我了。'],
+        win: ['结果早已注定。', '……结束了。', '废话不多说，再来。'],
+        lose: ['……有点意思。', '低估了。', '下局不会了。'],
+        tease: ['无聊。', '……幼稚。', '省点力气打牌。'],
+        think: ['……', '稍等。', '（沉默地思考）']
+      },
+      '元气': {
+        deal: ['好耶开打开打！', '冲冲冲！牌来了！', '今天要大杀四方！'],
+        play: ['上啊！就是这张！', '看我操作！', '冲就完事了！'],
+        win: ['赢啦赢啦！！', '无敌！我就是牌桌之王！', '哈哈哈哈太爽了！'],
+        lose: ['啊啊啊不甘心！', '再来再来！不服！', '呜呜呜下次翻盘给你们看！'],
+        tease: ['哈哈你刚才超搞笑！', '别怂啊就是现在！', '怕什么，梭哈！'],
+        think: ['嗯——让我瞅瞅…', '欸？这俩好像都行…', '不管了，赌一把！']
+      }
+    },
+    // AI 生成的新台词会按 tone+scene 追加进本地库（localStorage 持久化）
+  };
+  function loadVoiceLib() {
+    try { const raw = localStorage.getItem(VOICE_LIB_KEY); if (raw) { const p = JSON.parse(raw); if (p && p.lib && p.version === VOICE_LIB.version) return p; } } catch (e) {}
+    localStorage.setItem(VOICE_LIB_KEY, JSON.stringify(VOICE_LIB)); return VOICE_LIB;
+  }
+  function saveVoiceLib(lib) { try { localStorage.setItem(VOICE_LIB_KEY, JSON.stringify(lib)); } catch (e) {} }
+  function pickVoice(tone, scene) {
+    const lib = loadVoiceLib();
+    const t = lib.lib[tone] ? tone : '活泼';
+    const arr = (lib.lib[t] && lib.lib[t][scene]) || [];
+    if (!arr.length) return '……';
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+  function addVoice(tone, scene, text) {
+    if (!text || text.length > 60) return;
+    const lib = loadVoiceLib();
+    const t = lib.lib[tone] ? tone : '活泼';
+    if (!lib.lib[t][scene]) lib.lib[t][scene] = [];
+    if (!lib.lib[t][scene].includes(text)) { lib.lib[t][scene].push(text); if (lib.lib[t][scene].length > 40) lib.lib[t][scene].shift(); saveVoiceLib(lib); }
+  }
+  // AI 实时生成台词：成功则入库积累；失败/无API则回退本地库
+  function aiGenVoice(charName, tone, scene, ctxText, cb) {
+    const fallback = () => cb(pickVoice(tone, scene));
+    try {
+      const apiCfg = (typeof ensureAIBackend === 'function') ? ensureAIBackend() : null;
+      if (!apiCfg || typeof apiChat !== 'function') return fallback();
+      const sceneDesc = { deal: '刚拿到牌/开局', play: '出牌操作中', win: '赢了', lose: '输了', tease: '吐槽队友或对手', think: '思考犹豫' }[scene] || scene;
+      apiChat([
+        { role: 'system', content: `你是游戏角色「${charName}」，说话语气是「${tone}」。现在是牌局场景：${sceneDesc}。只输出一句符合人设语气的台词（15-30字），不要旁白不要引号不要解释。` + (ctxText ? '当前局势：' + ctxText : '') },
+        { role: 'user', content: '请说出台词。' }
+      ], apiCfg, { maxTokens: 60, temperature: 1.0 }).then(res => {
+        const t = String(res || '').trim().replace(/^["'“”]+|["'“”]+$/g, '').split('\n')[0];
+        if (t && t.length >= 4 && t.length <= 50) { addVoice(tone, scene, t); cb(t); } else fallback();
+      }).catch(fallback);
+    } catch (e) { fallback(); }
+  }
+
+
+// === 塔罗牌（78张大+小阿卡纳 · 三牌阵 · AI解读 · 翻牌音效） ===
+  const TAROT_DECK = [
+    {n:'愚者',r:'0',up:'新的开始、冒险、无限可能',dn:'鲁莽、冲动、盲目'},
+    {n:'魔术师',r:'1',up:'创造力、自信、掌控全局',dn:'欺骗、操纵、才华浪费'},
+    {n:'女祭司',r:'II',up:'直觉、神秘、内在智慧',dn:'秘密、压抑、被动'},
+    {n:'皇后',r:'III',up:'丰盛、母性、创造力',dn:'依赖、过度保护、停滞'},
+    {n:'皇帝',r:'IV',up:'权威、秩序、领导力',dn:'专制、僵化、控制欲'},
+    {n:'教皇',r:'V',up:'传统、信仰、精神引导',dn:'教条、盲从、束缚'},
+    {n:'恋人',r:'VI',up:'爱情、选择、和谐',dn:'分离、背叛、错误选择'},
+    {n:'战车',r:'VII',up:'意志、胜利、前进',dn:'失控、冲撞、方向迷失'},
+    {n:'力量',r:'VIII',up:'勇气、耐心、内在力量',dn:'自我怀疑、软弱、退缩'},
+    {n:'隐者',r:'IX',up:'独处、探索、真理',dn:'孤立、固执、迷失'},
+    {n:'命运之轮',r:'X',up:'转机、好运、循环',dn:'厄运、停滞、逆流'},
+    {n:'正义',r:'XI',up:'公正、因果、决断',dn:'不公、偏见、逃避责任'},
+    {n:'倒吊人',r:'XII',up:'牺牲、顿悟、换角度',dn:'无意义牺牲、拖延'},
+    {n:'死神',r:'XIII',up:'结束、重生、转变',dn:'抗拒变化、停滞不前'},
+    {n:'节制',r:'XIV',up:'平衡、调和、耐心',dn:'失衡、过度、冲突'},
+    {n:'恶魔',r:'XV',up:'欲望、束缚、物质',dn:'解脱、觉醒、挣脱枷锁'},
+    {n:'高塔',r:'XVI',up:'突变、破旧立新、觉醒',dn:'灾难、混乱、毁灭'},
+    {n:'星星',r:'XVII',up:'希望、灵感、宁静',dn:'绝望、迷失、虚假希望'},
+    {n:'月亮',r:'XVIII',up:'幻觉、潜意识、直觉',dn:'恐惧、欺骗、迷惘'},
+    {n:'太阳',r:'XIX',up:'快乐、成功、活力',dn:'暂时的阴霾、过度乐观'},
+    {n:'审判',r:'XX',up:'重生、觉醒、救赎',dn:'自我谴责、错失良机'},
+    {n:'世界',r:'XXI',up:'圆满、成就、旅行',dn:'未完成、停滞、缺乏闭环'}
+  ];
+  let tarotState = null;
+  const TAROT_KEY = 'gh_tarot_history_v1';
+
+  function loadTarotHistory() {
+    try { return JSON.parse(localStorage.getItem(TAROT_KEY)) || []; } catch (e) { return []; }
+  }
+  function saveTarotHistory(arr) { try { localStorage.setItem(TAROT_KEY, JSON.stringify(arr.slice(-5))); } catch (e) {} }
+
+  function renderTarotLobby() {
+    const hist = loadTarotHistory();
+    let histHtml = '';
+    if (hist.length) {
+      histHtml = '<div style="margin-top:14px;font-size:12px;color:var(--ubp-text-3);">📜 最近占卜：</div>';
+      hist.forEach((h, i) => {
+        histHtml += '<div style="background:var(--ubp-card-2);border-radius:8px;padding:8px 10px;margin-top:6px;border:1px solid var(--ubp-line);font-size:11.5px;color:var(--ubp-text-2);line-height:1.6;">' +
+          '<b style="color:#A855F7;">' + escapeHtml(h.cards.map(c => c.n + (c.rev ? '逆' : '')).join(' / ')) + '</b><br>' +
+          '<span style="color:var(--ubp-text-3);">' + escapeHtml(h.reading.slice(0, 80)) + '...</span></div>';
+      });
+    }
+    sheet.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex:none;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button data-tarot-act="tarot-back" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--ubp-text);" title="返回">←</button>
+          <span style="font-size:17px;font-weight:bold;color:#A855F7;">🔮 塔罗占卜</span>
+        </div>
+        <button data-tarot-act="tarot-close" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ubp-text);">✕</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding-right:2px;">
+        <div style="text-align:center;padding:20px 10px;">
+          <div style="font-size:48px;margin-bottom:8px;">🌙</div>
+          <div style="font-size:14px;color:var(--ubp-text);font-weight:600;margin-bottom:4px;">三牌占卜阵</div>
+          <div style="font-size:11.5px;color:var(--ubp-text-3);line-height:1.6;">过去 · 现在 · 未来<br>抽三张大阿卡纳，AI 根据牌面为你解读</div>
+        </div>
+        <button data-tarot-act="tarot-draw" class="ubp-btn primary" style="width:100%;padding:12px;font-size:15px;background:#A855F7;color:#fff;border:none;border-radius:10px;margin-bottom:8px;">✨ 洗牌抽牌</button>
+        <button data-tarot-act="tarot-ai-read" class="ubp-btn" style="width:100%;padding:10px;font-size:13px;border-radius:8px;display:none;">🤖 AI 深度解读</button>
+        <div id="tarot-cards-area" style="display:none;justify-content:center;gap:10px;margin-top:16px;"></div>
+        <div id="tarot-reading" style="margin-top:14px;"></div>
+        ${histHtml}
+      </div>
+    `;
+  }
+
+  function tarotDraw() {
+    SFX.magic();
+    const deck = [...TAROT_DECK];
+    const drawn = [];
+    for (let i = 0; i < 3; i++) {
+      const idx = Math.floor(Math.random() * deck.length);
+      const card = deck.splice(idx, 1)[0];
+      drawn.push({ ...card, rev: Math.random() < 0.4 });
+    }
+    tarotState = drawn;
+    const area = sheet.querySelector('#tarot-cards-area');
+    if (!area) return;
+    area.style.display = 'flex';
+    area.innerHTML = drawn.map((c, i) => {
+      const meaning = c.rev ? c.dn : c.up;
+      const label = ['过去', '现在', '未来'][i];
+      return `<div style="text-align:center;">
+        <div style="font-size:10px;color:var(--ubp-text-3);margin-bottom:4px;">${label}</div>
+        <div data-tarot-act="tarot-flip" data-idx="${i}" style="width:70px;height:110px;border-radius:8px;background:linear-gradient(135deg,#1a0a2e,#16213e,#0f3460);border:2px solid #A855F7;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:28px;color:#A855F7;box-shadow:0 4px 12px rgba(168,85,247,0.3);margin:0 auto;">${'🂠'}</div>
+        <div class="tarot-card-info" data-idx="${i}" style="display:none;margin-top:6px;">
+          <div style="font-size:13px;font-weight:700;color:${c.rev ? '#EF4444' : '#A855F7'};">${c.n}${c.rev ? ' 逆位' : ''}</div>
+          <div style="font-size:10px;color:var(--ubp-text-3);">${c.r}</div>
+          <div style="font-size:10.5px;color:var(--ubp-text-2);margin-top:3px;line-height:1.4;">${meaning}</div>
+        </div>
+      </div>`;
+    }).join('');
+    sheet.querySelector('#tarot-reading').innerHTML = '';
+    const aiBtn = sheet.querySelector('[data-tarot-act="tarot-ai-read"]');
+    if (aiBtn) aiBtn.style.display = 'none';
+  }
+
+  function tarotFlip(idx) {
+    SFX.flip();
+    const info = sheet.querySelector('.tarot-card-info[data-idx="' + idx + '"]');
+    if (info) info.style.display = 'block';
+    const card = sheet.querySelector('[data-tarot-act="tarot-flip"][data-idx="' + idx + '"]');
+    if (card) {
+      const c = tarotState[idx];
+      card.style.background = c.rev ? 'linear-gradient(135deg,#2a0a0a,#3a1010,#1a0505)' : 'linear-gradient(135deg,#0a2a1a,#103a20,#051a10)';
+      card.innerHTML = '<div style="text-align:center;"><div style="font-size:22px;">${c.n[0]||'🌙'}</div></div>';
+      card.style.cursor = 'default';
+      card.removeAttribute('data-tarot-act');
+    }
+    // 三张都翻完显示 AI 解读按钮
+    const allFlipped = sheet.querySelectorAll('.tarot-card-info:not([style*="display: none"])').length >= 3 ||
+      Array.from(sheet.querySelectorAll('.tarot-card-info')).every(el => el.style.display === 'block');
+    if (allFlipped) {
+      const aiBtn = sheet.querySelector('[data-tarot-act="tarot-ai-read"]');
+      if (aiBtn) aiBtn.style.display = 'block';
+    }
+  }
+
+  function tarotAIRead() {
+    const rd = sheet.querySelector('#tarot-reading');
+    if (!rd || !tarotState) return;
+    rd.innerHTML = '<div style="text-align:center;padding:12px;color:var(--ubp-text-3);font-size:12px;">🔮 AI 正在解读牌意...</div>';
+    SFX.truth();
+    const cardsText = tarotState.map((c, i) => `${['过去','现在','未来'][i]}：${c.n}${c.rev ? '（逆位）' : ''} - ${c.rev ? c.dn : c.up}`).join('；');
+    const apiCfg = (typeof ensureAIBackend === 'function') ? ensureAIBackend() : null;
+    if (!apiCfg || typeof apiChat !== 'function') {
+      rd.innerHTML = '<div style="background:var(--ubp-card-2);border-radius:10px;padding:12px;border:1px solid var(--ubp-line);font-size:13px;color:var(--ubp-text-2);line-height:1.7;">' +
+        tarotState.map((c, i) => `<b style="color:#A855F7;">${['过去','现在','未来'][i]} · ${c.n}${c.rev?' 逆位':''}</b><br><span style="color:var(--ubp-text-3);">${c.rev ? c.dn : c.up}</span><br>`).join('') +
+        '<div style="margin-top:8px;font-size:11px;color:var(--ubp-text-3);">⚠️ 未配置 AI API，显示基础牌意。在游戏中心设置中配置 API 后可获深度解读。</div></div>';
+      return;
+    }
+    apiChat([
+      { role: 'system', content: '你是一位神秘而温柔的塔罗占卜师。根据抽到的三张牌（过去/现在/未来），用80-150字给出整体解读，语气空灵、有画面感，直接输出解读正文，不要开场白。' },
+      { role: 'user', content: '抽到的三张牌：' + cardsText }
+    ], apiCfg, { maxTokens: 300, temperature: 0.9 }).then(res => {
+      const text = String(res || '').trim();
+      rd.innerHTML = '<div style="background:var(--ubp-card-2);border-radius:10px;padding:14px;border:1px solid #A855F7;font-size:13px;color:var(--ubp-text);line-height:1.8;">🔮 ' + escapeHtml(text) + '</div>';
+      SFX.magic();
+      const hist = loadTarotHistory();
+      hist.push({ cards: tarotState, reading: text, time: Date.now() });
+      saveTarotHistory(hist);
+    }).catch(() => {
+      rd.innerHTML = '<div style="font-size:12px;color:var(--ubp-text-3);text-align:center;">解读失败，请检查 API 配置。</div>';
+    });
+  }
+
+  function handleTarotAction(act, target) {
+    if (act === 'tarot-back' || act === 'tarot-close') { renderTableGameLobby(); return; }
+    if (act === 'tarot-draw') { tarotDraw(); return; }
+    if (act === 'tarot-flip') { const idx = Number(target?.dataset?.idx); tarotFlip(idx); return; }
+    if (act === 'tarot-ai-read') { tarotAIRead(); return; }
+  }
+
+
+// === 真心话大冒险（AI角色出题 · 本地题库兜底 · 转瓶选人） ===
+  const TOD_TRUTH_POOL = [
+    '最近一次撒谎是什么时候？为了什么？',
+    '手机里最不想被人看到的东西是什么？',
+    '暗恋过在场的人吗？是谁？',
+    '做过最社死的一件事是什么？',
+    '你上一次哭是因为什么？',
+    '最讨厌在场谁的一个习惯？',
+    '偷偷看过谁的社交主页超过十次？',
+    '做过最离谱的梦是什么？',
+    '如果隐身一天，你最想干什么？',
+    '这辈子说过最肉麻的一句话？',
+    '最不敢让父母知道的一件事？',
+    '觉得自己最大的缺点是什么？'
+  ];
+  const TOD_DARE_POOL = [
+    '模仿在场一个人的语气说话，直到有人猜出是谁',
+    '用最嗲的声音说「人家不依嘛」',
+    '对着窗外大喊「我是最棒的」三声',
+    '让大家看你手机相册最近一张表情包',
+    '表演一段螃蟹走路横穿房间',
+    '给通讯录第5个人发「我想你了」',
+    '用屁股写字：写「大冒险」三个字',
+    '保持僵尸跳姿势跳完一段舞',
+    '让大家给你拍一张最丑的鬼脸照',
+    '模仿婴儿哭三十秒',
+    '站起来即兴朗诵一首土味情诗',
+    '把「红鲤鱼与绿鲤鱼与驴」说五遍不许错'
+  ];
+  let todState = null;
+
+  function renderTODLobby() {
+    sheet.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex:none;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button data-tod-act="tod-back" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--ubp-text);" title="返回">←</button>
+          <span style="font-size:17px;font-weight:bold;color:#F43F5E;">🎲 真心话大冒险</span>
+        </div>
+        <button data-tod-act="tod-close" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ubp-text);">✕</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding-right:2px;">
+        <div style="text-align:center;padding:16px 10px 8px;">
+          <div style="font-size:44px;">🍾</div>
+          <div style="font-size:13px;color:var(--ubp-text-2);line-height:1.7;margin-top:6px;">点「真心话」或「大冒险」抽题<br>没有题目难得到你吧？</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button data-tod-act="tod-truth" class="ubp-btn primary" style="flex:1;padding:14px 0;font-size:15px;background:#3B82F6;color:#fff;border:none;border-radius:10px;">💬 真心话</button>
+          <button data-tod-act="tod-dare" class="ubp-btn primary" style="flex:1;padding:14px 0;font-size:15px;background:#F43F5E;color:#fff;border:none;border-radius:10px;">🔥 大冒险</button>
+        </div>
+        <div id="tod-result" style="margin-top:14px;"></div>
+      </div>
+    `;
+  }
+
+  function todAsk(kind) {
+    const rd = sheet.querySelector('#tod-result');
+    if (!rd) return;
+    SFX.click();
+    rd.innerHTML = '<div style="text-align:center;padding:10px;color:var(--ubp-text-3);font-size:12px;">🎲 正在出题...</div>';
+    const localPool = kind === 'truth' ? TOD_TRUTH_POOL : TOD_DARE_POOL;
+    const localQ = localPool[Math.floor(Math.random() * localPool.length)];
+    const showQ = (q, fromAI) => {
+      SFX[kind === 'truth' ? 'truth' : 'dare']();
+      rd.innerHTML = '<div style="background:var(--ubp-card-2);border-radius:12px;padding:16px;border:1px solid ' + (kind === 'truth' ? '#3B82F6' : '#F43F5E') + ';">' +
+        '<div style="font-size:11px;color:var(--ubp-text-3);margin-bottom:8px;">' + (kind === 'truth' ? '💬 真心话' : '🔥 大冒险') + (fromAI ? ' · AI 出题' : ' · 本地题库') + '</div>' +
+        '<div style="font-size:15px;font-weight:600;color:var(--ubp-text);line-height:1.7;">' + escapeHtml(q) + '</div>' +
+        '<div style="display:flex;gap:6px;margin-top:12px;">' +
+        '<button data-tod-act="tod-done" class="ubp-btn" style="flex:1;padding:8px;font-size:12.5px;border-radius:8px;">✔️ 完成</button>' +
+        '<button data-tod-act="tod-' + kind + '" class="ubp-btn" style="flex:1;padding:8px;font-size:12.5px;border-radius:8px;">🔄 换一题</button>' +
+        '</div></div>';
+    };
+    try {
+      const apiCfg = (typeof ensureAIBackend === 'function') ? ensureAIBackend() : null;
+      if (!apiCfg || typeof apiChat !== 'function') { showQ(localQ, false); return; }
+      const prompt = kind === 'truth'
+        ? '你是真心话大冒险的出题人，出一个刁钻但不过分的真心话问题，涉及隐私、情感、小秘密，15-40字，只输出问题本身。'
+        : '你是真心话大冒险的出题人，出一个好玩的整蛊型大冒险任务，动作夸张有趣可以在室内完成，15-40字，只输出任务本身。';
+      apiChat([
+        { role: 'system', content: prompt },
+        { role: 'user', content: '出题吧，来点新鲜的，不要老套。' }
+      ], apiCfg, { maxTokens: 80, temperature: 1.1 }).then(res => {
+        const t = String(res || '').trim().split('\n')[0];
+        if (t && t.length >= 6 && t.length <= 60) showQ(t, true);
+        else showQ(localQ, false);
+      }).catch(() => showQ(localQ, false));
+    } catch (e) { showQ(localQ, false); }
+  }
+
+  function handleTODAction(act) {
+    if (act === 'tod-back' || act === 'tod-close') { renderTableGameLobby(); return; }
+    if (act === 'tod-truth') { todAsk('truth'); return; }
+    if (act === 'tod-dare') { todAsk('dare'); return; }
+    if (act === 'tod-done') { SFX.win(); showToast('🎉 完成！好胆量！'); renderTODLobby(); return; }
+  }
+
+
   function renderCardLobby() {
     const ddzSaved = hasSavedDDZGame();
     const mjSaved = hasSavedMjGame();
@@ -9305,6 +9700,8 @@ const bgTarget = e.target.closest('[data-bg-act]');
         ${entry('✈️', '#0EA5E9', '飞行棋', '掷骰起飞 + 虚线飞行 + 撞子 · 2~4 人', 'tablegame-ludo', ludoSaved, '【飞行棋规则】&#10;1. 2~4 人各选一色（红/黄/蓝/绿），每人 4 架飞机；掷出 6 起飞，掷 6 可再掷一次。&#10;2. 停在同色虚线格沿虚线飞行 12 格，飞行终点可撞子；落在己方颜色格为安全格不可撞子，落在普通格可把敌方飞机全部打回基地（含叠子）。&#10;3. 绕场一圈后进入己方 5 格归家通道，必须刚好掷出剩余步数进终点，多余步数往回倒退。&#10;4. 连续三次 6 回合直接结束（可开关）；最先把 4 架飞机全部送入终点者获胜。')}
         ${entry('🏙️', '#F59E0B', '大富翁4', '买地盖楼 + 神明卡片 + 股市 · 2~4 人', 'tablegame-rm', rmSaved, '【大富翁4规则】&#10;1. 2~4 人，初始资金 5~30 万可选；掷骰买地盖楼收租，整条街同归一人租金翻倍。&#10;2. 神明附身：财神/福神/土地公（强）与穷神/衰神/死神（坑），送神卡可送走。&#10;3. 23 种卡片 + 5 种道具：陷害/均富/查税/红黑卡操纵股市，地雷路障飞弹炸楼。&#10;4. 3 家企业收购当董事长；监狱医院进出有讲究。&#10;5. 胜负：破产制 / 限时制 / 资产达标（大厅可选）。')}
         ${entry('🎴', '#DC2626', 'UNO', '2~4 人 · 108 张 · 出光手牌即获胜', 'tablegame-uno', unoSaved, '【UNO 规则】&#10;1. 108 张：红黄蓝绿四色，数字 0×1、1~9×2，跳过/反转/+2 各×2；黑色 变色×4、+4×4。&#10;2. 每人 7 张，出与弃牌堆顶同色或同数字/功能的牌；黑色万能牌随时可出。&#10;3. 跳过=下家停一轮；反转=方向颠倒；+2=下家摸2并跳过；+4=指定颜色，下家摸4并跳过（无质疑环节，没有可回应的叠牌就直接摸牌）。&#10;4. 没有可出的牌时只能摸 1 张并跳过回合；也可以主动摸牌（摸牌后同样跳过）。出光全部手牌者立即获胜，不计分。&#10;5. 剩最后 1 张牌必须 5 秒内喊 UNO，超时或被抓到罚摸 2 张。&#10;6. 可选民间变体：叠牌（+2 接 +2、+4 接 +4 累加罚牌）、7 变体（出 7 换手牌）、0 变体（出 0 全员喊 UNO）、加牌（+4 时可出指定颜色的 +2 叠牌）。')}
+        ${entry('🔮', '#A855F7', '塔罗占卜', '三牌阵 · 过去现在未来 · AI 解读', 'tablegame-tarot', false, '【塔罗占卜】'+chr(92)+'n1. 三牌阵：过去·现在·未来。'+chr(92)+'n2. 洗牌抽三张大阿卡纳，可正可逆。'+chr(92)+'n3. 翻牌看牌意，全翻开后 AI 深度解读。'+chr(92)+'n4. 最近 5 次占卜自动保存。')}
+        ${entry('🎲', '#F43F5E', '真心话大冒险', 'AI 出题 · 真心话 / 大冒险', 'tablegame-tod', false, '【真心话大冒险】'+chr(92)+'n1. 点真心话或大冒险抽题。'+chr(92)+'n2. AI 实时出题，无 AI 时用本地题库。'+chr(92)+'n3. 可换一题，完成后记录。')}
       </div>
     `;
   }
@@ -15274,6 +15671,8 @@ if (item.type === 'user_private') {
       renderSetup();
       return;
     }
+    if (act === 'tablegame-tarot') { renderTarotLobby(); return; }
+    if (act === 'tablegame-tod') { renderTODLobby(); return; }
     if (act === 'card-ddz') {
       if (hasSavedDDZGame()) resumeSavedDDZGame();
       else renderDDZLobby();
