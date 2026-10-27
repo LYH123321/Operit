@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="novel"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/app_name"
+        android:shortcutLongLabel="@string/app_name">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.ai.assistance.operit.debug"
+            android:targetClass="com.ai.assistance.operit.ui.features.chat.webview.MediaWebActivity">
+            <extra android:name="page" android:value="novel" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="gamehall"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/app_name"
+        android:shortcutLongLabel="@string/app_name">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.ai.assistance.operit.debug"
+            android:targetClass="com.ai.assistance.operit.ui.features.chat.webview.MediaWebActivity">
+            <extra android:name="page" android:value="gamehall" />
+        </intent>
+    </shortcut>
+</shortcuts>
