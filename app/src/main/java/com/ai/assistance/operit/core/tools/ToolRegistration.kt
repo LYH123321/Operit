@@ -1594,7 +1594,6 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
     handler.registerTool(
             name = "watch_with_me",
             descriptionGenerator = { _ -> "AI陪看：拉起内置影视中心并让桌宠一起看剧解说。参数keyword=剧名。用户说[陪我看][一起看]时用本工具，之后可周期调用capture_screenshot看屏幕并像朋友一样评论剧情。" },
-            },
             executor = { tool ->
                 try {
                     val kw = tool.parameters.find { it.name == "keyword" }?.value ?: ""
@@ -1615,7 +1614,6 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
     handler.registerTool(
             name = "dev_fetch",
             descriptionGenerator = { _ -> "开发技能：从任意URL下载文件(技能包/插件/模型/任意文件)到/sdcard/Download/Operit/{subdir}/。用户说[下载这个文件][帮我拉取xxx]时用本工具。" },
-            },
             executor = { tool ->
                 try {
                     val u = tool.parameters.find { it.name == "url" }?.value ?: ""
