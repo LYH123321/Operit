@@ -320,6 +320,19 @@
             android:name=".ui.features.chat.webview.MediaWebActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
+        <!-- 桌面独立入口：影视/小说/游戏中心，无需通过 AI 对话打开 -->
+        <activity-alias
+            android:name=".alias.VideoCenter"
+            android:targetActivity=".ui.features.chat.webview.MediaWebActivity"
+            android:exported="true"
+            android:label="🎬 影视中心"
+            android:icon="@mipmap/ic_launcher">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts_dummy" />
+        </activity-alias>
         <activity
             android:name=".ui.features.chat.webview.SniffActivity"
             android:exported="false"
