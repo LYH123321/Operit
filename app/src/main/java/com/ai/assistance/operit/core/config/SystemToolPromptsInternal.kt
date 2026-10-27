@@ -703,7 +703,7 @@ object SystemToolPromptsInternal {
                             name = "dev_fetch",
                             description = "Download any file (skill pack / plugin / model / arbitrary file) from a URL into /sdcard/Download/Operit/{subdir}/.",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "url", type = "string", description = "download URL", required = true)
+                                ToolParameterSchema(name = "url", type = "string", description = "download URL", required = true),
                                 ToolParameterSchema(name = "subdir", type = "string", description = "target subdir, default downloads", required = false)
                             )
                         )
@@ -3744,7 +3744,7 @@ object SystemToolPromptsInternal {
                             name = "dev_fetch",
                             description = "开发技能：从任意 URL 下载文件（技能包/插件/模型/任意文件）到 /sdcard/Download/Operit/{subdir}/。用户说[下载这个文件][帮我拉取 xxx][装个技能]时使用。",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "url", type = "string", description = "下载地址", required = true)
+                                ToolParameterSchema(name = "url", type = "string", description = "下载地址", required = true),
                                 ToolParameterSchema(name = "subdir", type = "string", description = "目标子目录，默认 downloads", required = false)
                             )
                         )
