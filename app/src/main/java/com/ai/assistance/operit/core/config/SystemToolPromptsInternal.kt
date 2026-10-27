@@ -674,6 +674,38 @@ object SystemToolPromptsInternal {
                             parametersStructured = listOf(
                                 ToolParameterSchema(name = "text", type = "string", description = "required, text she should say", required = true)
                             )
+                        ),
+                        ToolPrompt(
+                            name = "open_media_center",
+                            description = "Open the BUILT-IN media center (never another app). page=novel = free novel reader (254 book sources), page=video = video center (5 free streaming sites, m3u8), page=gamehall = game center. When the user asks to read a novel / open the novel center / watch a show / open the video center / game center, you MUST call this tool instead of searching for or launching other reading or video apps.",
+                            parametersStructured = listOf(
+                                ToolParameterSchema(name = "page", type = "string", description = "novel | video | gamehall", required = true)
+                            )
+                        ),
+                        ToolPrompt(
+                            name = "open_sniffer",
+                            description = "Open the built-in video sniffer browser: type a video site URL (e.g. v.qq.com) and it sniffs m3u8/mp4 direct links you can copy from the bottom bar.",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "get_pet_status",
+                            description = "Get the Live2D companion's current mood (happy/normal/bored/sleepy) and idle minutes, useful for proactive caring chat.",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "watch_with_me",
+                            description = "Watch together with the user: opens the built-in video center and makes the companion comment on the show. Then call capture_screenshot periodically to see the screen and chat about the plot.",
+                            parametersStructured = listOf(
+                                ToolParameterSchema(name = "keyword", type = "string", description = "show or movie name", required = true)
+                            )
+                        ),
+                        ToolPrompt(
+                            name = "dev_fetch",
+                            description = "Download any file (skill pack / plugin / model / arbitrary file) from a URL into /sdcard/Download/Operit/{subdir}/.",
+                            parametersStructured = listOf(
+                                ToolParameterSchema(name = "url", type = "string", description = "download URL", required = true)
+                                ToolParameterSchema(name = "subdir", type = "string", description = "target subdir, default downloads", required = false)
+                            )
                         )
                     )
             ),
@@ -3666,6 +3698,55 @@ object SystemToolPromptsInternal {
                             name = "device_info",
                             description = "获取设备信息。",
                             parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "show_live2d",
+                            description = "在屏幕悬浮窗显示可爱的 Live2D 动漫桌宠（会眨眼、可拖动）。需要悬浮窗权限。用户说[召唤桌宠][叫出看板娘]时使用。",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "hide_live2d",
+                            description = "关闭 Live2D 桌宠悬浮窗。",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "live2d_say",
+                            description = "让 Live2D 桌宠说出指定文字（带语音）。",
+                            parametersStructured = listOf(
+                                ToolParameterSchema(name = "text", type = "string", description = "必需，让她说的话", required = true)
+                            )
+                        ),
+                        ToolPrompt(
+                            name = "open_media_center",
+                            description = "打开内置媒体中心，不是其他App。page=novel 是免费小说中心（254 书源可换源阅读）；page=video 是影视中心（聚合 5 个资源站免费看剧看电影）；page=gamehall 是游戏中心。用户说[看小说][小说中心][看书][影视中心][看剧][看电影][游戏中心][玩游戏]时必须调用本工具打开内置页面，绝对不要搜索或启动系统里的其他阅读/视频App。",
+                            parametersStructured = listOf(
+                                ToolParameterSchema(name = "page", type = "string", description = "novel 小说中心 | video 影视中心 | gamehall 游戏中心", required = true)
+                            )
+                        ),
+                        ToolPrompt(
+                            name = "open_sniffer",
+                            description = "打开内置视频嗅探浏览器：输入视频网站网址（如 v.qq.com），自动嗅探抓取 m3u8/mp4 直链，点底部结果可复制。用户说[嗅探][抓视频直链][抓m3u8]时使用。",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "get_pet_status",
+                            description = "获取 Live2D 桌宠当前心情（happy 开心/normal 普通/bored 无聊/sleepy 困倦）和闲置分钟数，用于主动关怀聊天。用户问[桌宠心情][它在干嘛]时使用。",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "watch_with_me",
+                            description = "AI 陪看：拉起内置影视中心并让桌宠一起看剧解说。参数 keyword 为剧名。用户说[陪我看][一起看][陪我看剧]时必须用本工具，之后可周期调用 capture_screenshot 看屏幕并像朋友一样评论剧情。",
+                            parametersStructured = listOf(
+                                ToolParameterSchema(name = "keyword", type = "string", description = "剧名或想看的内容", required = true)
+                            )
+                        ),
+                        ToolPrompt(
+                            name = "dev_fetch",
+                            description = "开发技能：从任意 URL 下载文件（技能包/插件/模型/任意文件）到 /sdcard/Download/Operit/{subdir}/。用户说[下载这个文件][帮我拉取 xxx][装个技能]时使用。",
+                            parametersStructured = listOf(
+                                ToolParameterSchema(name = "url", type = "string", description = "下载地址", required = true)
+                                ToolParameterSchema(name = "subdir", type = "string", description = "目标子目录，默认 downloads", required = false)
+                            )
                         )
                     )
             ),
