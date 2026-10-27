@@ -88,7 +88,16 @@ class Live2DService : Service() {
             "say" -> { intent?.getStringExtra("text")?.let { say(it) }; return START_NOT_STICKY }
         }
         if (isShowing) return START_NOT_STICKY
-        if (!android.provider.Settings.canDrawOverlays(this)) return START_NOT_STICKY
+        if (!android.provider.Settings.canDrawOverlays(this)) {
+            android.widget.Toast.makeText(this, "需要悬浮窗权限才能显示Live2D桌宠，请在系统设置中授权", android.widget.Toast.LENGTH_LONG).show()
+            try {
+                val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    android.net.Uri.parse("package:" + packageName))
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+            } catch (_: Exception) {}
+            return START_NOT_STICKY
+        }
         ensureTts(this)
         // 心情循环：每 3 分钟检查，无聊/困了主动搭话（AG 主动关怀雏形）
         moodHandler?.removeCallbacks(moodRunnable ?: Runnable {})
