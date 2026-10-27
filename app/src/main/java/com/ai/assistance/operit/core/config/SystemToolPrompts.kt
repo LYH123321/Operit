@@ -541,7 +541,7 @@ object SystemToolPrompts {
             adjustedFileSystemTools,
             httpTools,
             memoryTools
-        )
+        ) + internalToolCategoriesEn
     }
 
     fun getAllCategoriesEn(
@@ -616,7 +616,7 @@ object SystemToolPrompts {
             adjustedFileSystemTools,
             httpToolsCn,
             memoryToolsCn
-        )
+        ) + internalToolCategoriesCn
     }
 
     fun getAllCategoriesCn(
