@@ -83,7 +83,7 @@ class MediaWebActivity : AppCompatActivity() {
     }
     override fun onResume() {
         super.onResume()
-        try { webView.getClass().getMethod("onResume").invoke(webView) } catch (_: Exception) {}
+        try { WebView::class.java.getMethod("onResume").invoke(webView) } catch (_: Exception) {}
     }
     /** 用户开始播放后由 JS 桥调用：启动前台服务保活 */
     fun startForegroundKeepAlive() {
